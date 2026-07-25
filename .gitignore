@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+ENV/
+
+# Distribuciones
+dist/
+build/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# SQLite
+*.db
+*.db-journal
+data/*.db
+data/*.db-journal
+!data/.gitkeep
+
+# Docker
+.dockerignore
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

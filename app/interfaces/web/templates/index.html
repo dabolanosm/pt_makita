@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Mi biblioteca{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h1>📖 Mi Biblioteca</h1>
+    <p class="subtitle">Libros guardados: <strong>{{ books|length }}</strong></p>
+  </section>
+
+  <!-- Sección de búsqueda dual -->
+  <section class="panel search-section">
+    <!-- Buscar en biblioteca local -->
+    <div class="search-box">
+      <h3>🔍 Buscar en tu biblioteca</h3>
+      <form method="POST" action="/web/search/local" class="search-form" onsubmit="handleFormSubmit(this)">
+        <input type="text" name="query" placeholder="Título, autor o categoría..." aria-label="Buscar en biblioteca" required />
+        <button type="submit" class="button button-primary">Buscar</button>
+      </form>
+    </div>
+
+    <!-- Buscar en Google Books -->
+    <div class="search-box">
+      <h3>🌐 Buscar libros disponibles</h3>
+      <form method="POST" action="/web/search/google" class="search-form" onsubmit="handleFormSubmit(this)">
+        <input type="text" name="query" placeholder="Tema, título o autor..." aria-label="Buscar en Google Books" required />
+        <button type="submit" class="button button-primary">Buscar en Google</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Búsquedas rápidas (seeds) -->
+  {% if search_seeds %}
+    <section class="panel">
+      <h2>⚡ Búsquedas rápidas</h2>
+      <div class="seed-grid">
+        {% for label, query in search_seeds %}
+          <form method="post" action="/web/sync/{{ query | urlencode }}" class="seed-item" onsubmit="handleFormSubmit(this)">
+            <button type="submit" class="button button-primary button-small">{{ label }}</button>
+          </form>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Resultados de Google Books (si existen) -->
+  {% if google_results %}
+    <section class="panel">
+      <h2>🔎 Resultados de Google Books ({{ google_results|length }})</h2>
+      <div class="cards-grid">
+        {% for result in google_results %}
+          <article class="card">
+            {% if result.thumbnail_url %}
+              <img 
+                src="{{ result.thumbnail_url }}" 
+                alt="Portada de {{ result.title }}" 
+                class="book-thumb"
+                loading="lazy"
+                decoding="async"
+                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22150%22/><text x=%2250%22 y=%2275%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22>Sin imagen</text></svg>'"
+              />
+            {% else %}
+              <div class="book-thumb placeholder">📖</div>
+            {% endif %}
+            <div class="card-body">
+              <h3 class="book-title">{{ result.title }}</h3>
+              {% if result.authors %}
+                <p class="book-meta">{{ result.authors|join(', ') }}</p>
+              {% endif %}
+              {% if result.publisher %}
+                <p class="book-meta">{{ result.publisher }}</p>
+              {% endif %}
+              <div class="card-actions">
+                <form method="post" action="/web/books/add" class="inline-form" onsubmit="handleFormSubmit(this)">
+                  <input type="hidden" name="google_id" value="{{ result.id }}" />
+                  <button type="submit" class="button button-secondary">Agregar a mi biblioteca</button>
+                </form>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Mi biblioteca -->
+  <section class="panel">
+    <h2>📚 Mi biblioteca{% if books %} ({{ books|length }}){% endif %}</h2>
+
+    {% if books %}
+      <!-- Toolbar de selección -->
+      <div id="selection-toolbar" class="selection-toolbar" style="display: none;">
+        <span class="selection-info">
+          <strong id="selected-count">0</strong> libro(s) seleccionado(s)
+        </span>
+        <div class="selection-actions">
+          <button type="button" class="button button-danger button-small" onclick="deleteSelected()">
+            🗑️ Eliminar seleccionados
+          </button>
+        </div>
+      </div>
+
+      <!-- Acciones globales -->
+      <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button type="button" class="button button-secondary button-small" onclick="selectAllBooks()">
+          ☑️ Seleccionar todo
+        </button>
+        <button type="button" class="button button-secondary button-small" onclick="clearAllBooks()">
+          🗑️ Limpiar biblioteca
+        </button>
+      </div>
+
+      <!-- Grilla de libros -->
+      <div class="cards-grid" id="books-grid">
+        {% for book in books %}
+          <article class="card book-item" data-book-id="{{ book.id }}">
+            <div style="position: relative;">
+              {% if book.thumbnail_url %}
+                <img 
+                  src="{{ book.thumbnail_url }}" 
+                  alt="Portada de {{ book.title }}" 
+                  class="book-thumb"
+                  loading="lazy"
+                  decoding="async"
+                  {% if loop.first %}fetchpriority="high"{% endif %}
+                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22150%22/><text x=%2250%22 y=%2275%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22>Sin imagen</text></svg>'"
+                />
+              {% else %}
+                <div class="book-thumb placeholder">📖</div>
+              {% endif %}
+              <input 
+                type="checkbox" 
+                class="book-checkbox book-select" 
+                value="{{ book.id }}" 
+                aria-label="Seleccionar libro: {{ book.title }}"
+                onchange="updateSelectionToolbar()"
+                style="position: absolute; top: 8px; left: 8px; width: 1.5rem; height: 1.5rem;"
+              />
+            </div>
+            <div class="card-body">
+              <h3 class="book-title">{{ book.title }}</h3>
+              <p class="book-meta">{{ book.authors_text }}</p>
+              <p class="book-meta">{{ book.published_date or 'Fecha desconocida' }}</p>
+              <div class="card-actions">
+                <a class="button button-secondary" href="/books/{{ book.id }}" aria-label="Ver detalle de {{ book.title }}">
+                  👁️ Detalle
+                </a>
+                <form method="post" action="/web/books/{{ book.id }}/delete" class="inline-form" onsubmit="return confirm('¿Eliminar este libro?')">
+                  <button type="submit" class="button button-danger" aria-label="Eliminar {{ book.title }}">
+                    🗑️ Eliminar
+                  </button>
+                </form>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      <!-- Paginación (opcional, muestra placeholder) -->
+      <div class="pagination" id="pagination" style="display: none;">
+        <!-- Los números de página se generarían aquí si hay más de 12 libros -->
+      </div>
+    {% else %}
+      <p>No hay libros en tu biblioteca. Usa las búsquedas rápidas o personalizada para sincronizar algunos.</p>
+    {% endif %}
+  </section>
+
+  <!-- Modal de confirmación para limpiar biblioteca -->
+  <div id="clearModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚠️ Limpiar biblioteca</h2>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro? Esto eliminará <strong>TODOS</strong> los {{ books|length }} libro(s) de tu biblioteca. Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="button button-secondary" onclick="closeClearModal()">Cancelar</button>
+        <form method="post" action="/web/library/clear" class="inline-form" onsubmit="handleFormSubmit(this)">
+          <button type="submit" class="button button-danger">Confirmar limpieza</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts de interactividad -->
+  <script>
+    // ========================================================================
+    // MANEJO DE FORMULARIOS CON LOADING STATES
+    // ========================================================================
+    
+    function handleFormSubmit(form) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner" style="width: 0.875rem; height: 0.875rem; margin-right: 0.5rem; display: inline-block; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%;"></span>Cargando...';
+      }
+      return true;
+    }
+
+    // ========================================================================
+    // SELECCIÓN MÚLTIPLE
+    // ========================================================================
+
+    function updateSelectionToolbar() {
+      const checkboxes = document.querySelectorAll('.book-select:checked');
+      const toolbar = document.getElementById('selection-toolbar');
+      const count = document.getElementById('selected-count');
+
+      if (checkboxes.length > 0) {
+        toolbar.style.display = 'flex';
+        count.textContent = checkboxes.length;
+      } else {
+        toolbar.style.display = 'none';
+      }
+    }
+
+    function selectAllBooks() {
+      const checkboxes = document.querySelectorAll('.book-select');
+      const areAllChecked = Array.from(checkboxes).every(cb => cb.checked);
+      
+      checkboxes.forEach(cb => {
+        cb.checked = !areAllChecked;
+      });
+
+      updateSelectionToolbar();
+    }
+
+    function deleteSelected() {
+      const checkboxes = document.querySelectorAll('.book-select:checked');
+      if (checkboxes.length === 0) {
+        window.showToast('Selecciona al menos un libro', 'warning');
+        return;
+      }
+
+      if (!confirm(`¿Eliminar ${checkboxes.length} libro(s) seleccionado(s)?`)) {
+        return;
+      }
+
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = '/web/books/delete-selected';
+
+      checkboxes.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_ids';
+        input.value = cb.value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.onsubmit = function() {
+        return handleFormSubmit(this);
+      };
+      form.submit();
+    }
+
+    // ========================================================================
+    // LIMPIAR BIBLIOTECA CON MODAL
+    // ========================================================================
+
+    function clearAllBooks() {
+      const modal = document.getElementById('clearModal');
+      modal.classList.add('active');
+    }
+
+    function closeClearModal() {
+      const modal = document.getElementById('clearModal');
+      modal.classList.remove('active');
+    }
+
+    window.addEventListener('click', function(event) {
+      const modal = document.getElementById('clearModal');
+      if (event.target === modal) {
+        closeClearModal();
+      }
+    });
+  </script>
+{% endblock %}

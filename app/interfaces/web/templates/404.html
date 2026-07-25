@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Página no encontrada | Book Library Sync{% endblock %}
+
+{% block content %}
+  <div class="error-container">
+    <h1 class="error-code">404</h1>
+    <h2 class="error-title">Página no encontrada</h2>
+    <p class="error-message">
+      Lo sentimos, la página que buscas no existe. Verifica la URL e intenta nuevamente.
+    </p>
+    <a href="/" class="button button-primary">
+      ← Volver a mi biblioteca
+    </a>
+  </div>
+{% endblock %}

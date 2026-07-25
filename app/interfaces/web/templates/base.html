@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Book Library Sync{% endblock %}</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    /* Estilos críticos inline para evitar FOUC */
+    :root {
+      --font-serif: 'Lora', serif;
+      --font-sans: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">📚 Book Library Sync</a>
+      <nav class="nav-links">
+        <a href="/" aria-label="Inicio">Inicio</a>
+        <a href="/docs" aria-label="Documentación de API">API Docs</a>
+        <button id="theme-toggle" aria-label="Cambiar tema" title="Cambiar a modo oscuro">
+          <span id="theme-icon">🌙</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="toastContainer" class="toast-container"></div>
+    {% if message %}
+      <div id="message-display" data-message="{{ message }}" data-type="success" style="display: none;"></div>
+    {% endif %}
+    {% if error %}
+      <div id="error-display" data-error="{{ error }}" data-type="error" style="display: none;"></div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">Book Library Sync · Demo técnica</div>
+  </footer>
+
+  <!-- JavaScript global -->
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

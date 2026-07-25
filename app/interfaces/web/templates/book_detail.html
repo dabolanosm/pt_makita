@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} | Book Library Sync{% endblock %}
+
+{% block content %}
+  <article class="detail-container">
+    <!-- Botón de regreso -->
+    <div style="margin-bottom: 1.5rem;">
+      <a href="/" class="button button-secondary">← Volver a mi biblioteca</a>
+    </div>
+
+    <!-- Layout principal: Portada + Información -->
+    <div class="detail-layout">
+      <!-- Portada (lado izquierdo) -->
+      <div class="detail-cover">
+        {% if book.thumbnail_url %}
+          <img 
+            src="{{ book.thumbnail_url }}" 
+            alt="Portada de {{ book.title }}" 
+            loading="lazy"
+            decoding="async"
+            fetchpriority="high"
+            onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22150%22/><text x=%2250%22 y=%2275%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22>Sin imagen</text></svg>'"
+          />
+        {% else %}
+          <div style="width: 100%; max-width: 300px; aspect-ratio: 2/3; display: flex; align-items: center; justify-content: center; background-color: var(--bg-primary); border-radius: var(--border-radius-lg); font-size: 4rem;">
+            📖
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Información (lado derecho) -->
+      <div class="detail-info">
+        <h1>{{ book.title }}</h1>
+        <p class="book-meta" style="font-size: var(--font-size-lg); margin: 1rem 0;">
+          {{ book.authors_text }}
+        </p>
+
+        <!-- Metadatos -->
+        <div class="detail-meta">
+          {% if book.publisher %}
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Editorial</span>
+              <span>{{ book.publisher }}</span>
+            </div>
+          {% endif %}
+
+          {% if book.published_date %}
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Fecha de publicación</span>
+              <span>{{ book.published_date }}</span>
+            </div>
+          {% endif %}
+
+          {% if book.page_count %}
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Páginas</span>
+              <span>{{ book.page_count }}</span>
+            </div>
+          {% endif %}
+
+          {% if book.language %}
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Idioma</span>
+              <span>{{ book.language | upper }}</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Categorías como tags -->
+        {% if book.categories_text %}
+          <div style="margin-top: 1.5rem;">
+            <span class="detail-meta-label" style="display: block; margin-bottom: 0.75rem;">Categorías</span>
+            <div class="tags">
+              {% for category in book.categories_list %}
+                <span class="tag">{{ category }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Acciones -->
+        <div class="detail-actions">
+          {% if book.preview_link %}
+            <a href="{{ book.preview_link }}" target="_blank" rel="noopener noreferrer" class="button button-primary" aria-label="Ver en Google Books">
+              📖 Ver en Google Books
+            </a>
+          {% endif %}
+          <button 
+            type="button" 
+            class="button button-danger" 
+            onclick="deleteBook()" 
+            aria-label="Eliminar este libro"
+          >
+            🗑️ Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Descripción (ancho completo abajo) -->
+    <section style="margin-top: 3rem;">
+      <h2>Descripción</h2>
+      <div style="padding: 1.5rem; background-color: var(--bg-secondary); border-radius: var(--border-radius-lg); border: 1px solid var(--border);">
+        <p>
+          {{ book.description or 'Sin descripción disponible.' }}
+        </p>
+      </div>
+    </section>
+
+    <!-- Información técnica (ID Google, URLs internas) -->
+    <section style="margin-top: 2rem; opacity: 0.8; font-size: var(--font-size-sm);">
+      <details>
+        <summary>Información técnica</summary>
+        <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+          {% if book.google_id %}
+            <li><strong>ID Google Books:</strong> <code style="background-color: var(--bg-primary); padding: 0.25rem 0.5rem; border-radius: 4px;">{{ book.google_id }}</code></li>
+          {% endif %}
+          <li><strong>Agregado:</strong> {{ book.created_at.strftime('%d/%m/%Y %H:%M') if book.created_at else 'N/D' }}</li>
+          <li><strong>Actualizado:</strong> {{ book.updated_at.strftime('%d/%m/%Y %H:%M') if book.updated_at else 'N/D' }}</li>
+        </ul>
+      </details>
+    </section>
+  </article>
+
+  <!-- Modal de confirmación para eliminar -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🗑️ Eliminar libro</h2>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro? Eliminarás "<strong>{{ book.title }}</strong>" de tu biblioteca. Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="button button-secondary" onclick="closeDeleteModal()">Cancelar</button>
+        <form method="post" action="/web/books/{{ book.id }}/delete" class="inline-form" onsubmit="handleFormSubmit(this)">
+          <button type="submit" class="button button-danger">Confirmar eliminación</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function deleteBook() {
+      const modal = document.getElementById('deleteModal');
+      modal.classList.add('active');
+    }
+
+    function closeDeleteModal() {
+      const modal = document.getElementById('deleteModal');
+      modal.classList.remove('active');
+    }
+
+    window.addEventListener('click', function(event) {
+      const modal = document.getElementById('deleteModal');
+      if (event.target === modal) {
+        closeDeleteModal();
+      }
+    });
+
+    function handleFormSubmit(form) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Eliminando...';
+      }
+      return true;
+    }
+  </script>
+{% endblock %}
