@@ -116,7 +116,6 @@ docker compose run --rm api pytest
 
 ## Problemas encontrados
 
-- Hubo problemas iniciales con Docker Desktop no conectado al daemon local.
 - Se asumió que la API key de Google Books está habilitada correctamente.
 
 ## Aspectos pendientes / Mejoras futuras
@@ -130,7 +129,7 @@ docker compose run --rm api pytest
 
 En un VPS se puede desplegar con Docker Compose, exponiendo el servicio en el puerto 8000 y montando el volumen `data/` para persistencia. Para producción se recomienda usar un proxy inverso con TLS.
 
-## Publicación en la nube (Nivel 7) ✅
+## Publicación en la nube (Nivel 7) 
 
 La aplicación está desplegada y accesible públicamente en:
 
