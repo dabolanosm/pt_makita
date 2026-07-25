@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: book-library-sync
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Override del CMD del Dockerfile: quita --reload (desarrollo) y usa el puerto que Render asigna ($PORT)
+    dockerCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Secretos: el usuario debe configurarlos en el dashboard de Render
+      - key: GOOGLE_BOOKS_API_KEY
+        sync: false
+      # Variables públicas: ya tienen valor por defecto en app/config.py, pero las fijamos aquí para que sean explícitas
+      - key: DATABASE_URL
+        value: sqlite:///./data/app.db
+      - key: APP_HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: INFO

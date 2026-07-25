@@ -129,3 +129,51 @@ docker compose run --rm api pytest
 ## Proceso de despliegue
 
 En un VPS se puede desplegar con Docker Compose, exponiendo el servicio en el puerto 8000 y montando el volumen `data/` para persistencia. Para producción se recomienda usar un proxy inverso con TLS.
+
+## Publicación en la nube (Nivel 7) ✅
+
+La aplicación está desplegada y accesible públicamente en:
+
+**🔗 https://book-library-sync.onrender.com**
+
+> Nota: al primer request la app puede tardar 30-50 segundos (cold start del plan gratuito de Render). Los requests siguientes son normales.
+
+### Plataforma utilizada
+
+**Render.com** (plan gratuito) — fue elegida porque:
+
+- Detecta y construye el `Dockerfile` automáticamente (cero código nuevo).
+- HTTPS automático con certificado válido.
+- Plan gratuito funcional para demos.
+- Redespliegue automático con cada `git push` (CI/CD gratis).
+
+### Cómo se hizo (sin modificar el código fuente)
+
+1. Se añadió un único archivo de configuración: `render.yaml` (Render Blueprint). Este archivo declara el servicio web, las variables de entorno y un override del comando de inicio para producción (`uvicorn ... --port $PORT` en vez de `--reload`).
+2. Se añadió `docs/DEPLOY.md` con la guía paso a paso y troubleshooting.
+3. Se conectó el repo de GitHub a Render.
+4. Se configuró la variable de entorno secreta `GOOGLE_BOOKS_API_KEY` en el dashboard de Render.
+5. Render construyó la imagen Docker con el `Dockerfile` original del proyecto y la desplegó.
+
+**No se modificó ningún archivo del código fuente** (`app/`, `tests/`, `scripts/`, etc.). El `Dockerfile` y `docker-compose.yml` originales quedan intactos.
+
+### Limitaciones del plan gratuito
+
+- La app "duerme" tras 15 minutos sin tráfico (cold start en el siguiente request).
+- El archivo SQLite es **efímero**: los libros sincronizados se borran al redeploy. Si necesitas persistencia, consulta `docs/DEPLOY.md` sección 5 (Persistent Disk por 1 USD/mes, o PostgreSQL externo gratuito).
+- Solo dominio `*.onrender.com` (sin dominio personalizado en el plan free).
+
+### Verificación rápida
+
+Una vez en línea, prueba:
+
+| URL | Esperado |
+|---|---|
+| `/` | Dashboard con la biblioteca |
+| `/docs` | Swagger UI con todos los endpoints |
+| `/health` | `{"status":"ok"}` |
+| `/api/books` | Lista de libros (vacía al inicio) |
+
+### Guía detallada
+
+Ver [`docs/DEPLOY.md`](docs/DEPLOY.md) para instrucciones paso a paso, troubleshooting completo y alternativas (Railway, Fly.io, Cloud Run).
