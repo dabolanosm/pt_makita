@@ -120,11 +120,11 @@ sequenceDiagram
     participant Books as Google Books API
 
     User->>UI: submit form con query
-    UI->>+Web: POST /web/sync (form data)
-    Web->>+Svc: sync_from_query(query, 10)
-    Svc->>+Books: GET volumes
-    Books-->>-Svc: items
-    Svc-->>-Web: list[Book]
-    Web-->>-UI: 303 Redirect -> /?message=...
-    UI-->>-User: dashboard actualizado
+    UI->>Web: POST /web/sync (form data)
+    Web->>Svc: sync_from_query(query, 10)
+    Svc->>Books: GET volumes
+    Books-->>Svc: items
+    Svc-->>Web: list[Book]
+    Web-->>UI: 303 Redirect -> /?message=...
+    UI-->>User: dashboard actualizado
 ```
