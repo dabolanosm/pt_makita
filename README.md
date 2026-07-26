@@ -50,6 +50,67 @@ nuevos títulos usando una API externa reconocida (Google Books).
 - No tiene autenticación (es una demo técnica de un solo usuario).
 - No usa Pressbooks ni WordPress; es una app FastAPI autocontenida.
 
+### 1.1. Cobertura respecto a los niveles de la prueba técnica
+
+| Nivel | Qué pide el enunciado | Estado |
+|---|---|---|
+| 1. Docker | Estructura de proyecto + entorno Dockerizado | ✅ Completo |
+| 2. Pressbooks / app principal | Pressbooks recomendado; se permite alternativa justificada | 🔁 Sustituido — ver justificación en 1.2 |
+| 3. API externa autenticada | Autenticación + manejo de errores | ✅ Completo |
+| 4. Procesamiento y almacenamiento | Modelo de datos + deduplicación | ✅ Completo |
+| 5. API propia | CRUD documentado | ✅ Completo |
+| 6. Integración entre componentes | App principal + API propia + datos externos | 🔁 Adaptado — ver 1.3 |
+| 7. Publicación | Disponible en Internet | ✅ Completo (activo en Render) |
+| 8. Documentación | README claro y organizado | ✅ Completo |
+
+### 1.2. Nivel 2 — Justificación de no usar Pressbooks
+
+El enunciado pide responder cuatro preguntas cuando se sustituye Pressbooks. Aquí están, con la
+mayor honestidad posible sobre lo que sí se hizo y lo que no:
+
+1. **Por qué se usó una alternativa.** La decisión se tomó en la fase de análisis, **antes de
+   escribir una sola línea de código** (el primer commit del repositorio ya llega con la app
+   completa sin Pressbooks). Con el tiempo disponible para la prueba, se priorizó cubrir en
+   profundidad los niveles 3 a 8 (integración de API externa, modelado de datos, API propia,
+   documentación y despliegue) en vez de repartir ese tiempo entre levantar un CMS PHP completo
+   y desarrollar la lógica de negocio que es el núcleo de lo que se evalúa.
+
+2. **Qué dificultades se encontraron con Pressbooks.** Ninguna de primera mano: **no se llegó a
+   intentar un despliegue de Pressbooks en este ciclo de desarrollo.** No hay commits, ramas ni
+   archivos de configuración (`docker-compose`, `.env`) que muestren un intento real. Esto es en
+   sí mismo una limitación que vale la pena reconocer: la decisión se basó en investigación previa
+   sobre los requisitos de Pressbooks (WordPress multisite + MySQL, ~1.5 GB de RAM en reposo y
+   cerca de un minuto de bootstrap), no en un problema técnico encontrado en la práctica.
+
+3. **Cómo podría integrarse Pressbooks posteriormente.** Sin cambiar la API existente: se
+   agregaría Pressbooks como un servicio adicional en `docker-compose.yml` (WordPress + MySQL) y
+   un plugin propio con un shortcode que consuma `GET /api/books` vía HTTP para listar la
+   biblioteca dentro de una página o libro de Pressbooks. `BookService` y el resto de las capas
+   `domain`/`application`/`infrastructure` no requieren ningún cambio, porque Pressbooks
+   consumiría la API igual que lo hace hoy la UI Jinja2.
+
+4. **Qué diferencias tendría la arquitectura final.** Pasaría de una app autocontenida a un
+   sistema de dos aplicaciones: Pressbooks como capa de presentación adicional (PHP) y esta API
+   como backend compartido. Eso implicaría: (a) un segundo contenedor con su propia base de datos
+   MySQL en `docker-compose.yml`, (b) exponer la API fuera de `localhost` con una capa de
+   autenticación que hoy no existe (ver limitaciones en la sección 13), ya que dejaría de ser
+   consumida solo por la propia UI, y (c) manejar CORS entre el dominio de Pressbooks y el de la
+   API si se despliegan por separado.
+
+### 1.3. Nivel 6 — Cómo se cumple con esta arquitectura
+
+Al no existir un CMS separado (por la sustitución del Nivel 2), la integración entre componentes
+ocurre **dentro de la misma aplicación** en vez de entre dos aplicaciones distintas: la UI web
+(Jinja2) y la API REST son dos interfaces independientes (`app/interfaces/web` y
+`app/interfaces/api`) que convergen en el mismo `BookService`, que es la única capa que toca tanto
+la base de datos local como la API externa de Google Books (ver diagrama en
+[`docs/diagrams/01-arquitectura-general.md`](docs/diagrams/01-arquitectura-general.md)). Es una
+integración real entre "app principal ↔ API propia ↔ dato externo" — el flujo completo (buscar en
+Google Books → guardar en SQLite → mostrarlo en la UI o consultarlo vía `/api/books`) funciona de
+punta a punta y está desplegado en producción — pero sin la segunda aplicación (Pressbooks) que el
+enunciado usa como ejemplo de integración. La sección 1.2, punto 3, describe cómo se sumaría esa
+pieza sin modificar la arquitectura actual.
+
 Para el detalle profundo de arquitectura consulta [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 Para el detalle del despliegue en Render consulta [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
