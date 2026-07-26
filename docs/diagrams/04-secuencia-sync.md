@@ -19,19 +19,19 @@ sequenceDiagram
     participant Books as Google Books API
     participant DB as SQLAlchemy (SQLite)
 
-    User->>+API: POST /api/sync
+    User->>API: POST /api/sync
     Note over API: body: {query: "python", max_results: 5}
     API->>API: Pydantic valida SyncRequest (max_results <= 10)
-    API->>+Svc: sync_from_query(query, max_results=5)
+    API->>Svc: sync_from_query(query, max_results=5)
 
-    Svc->>+GB: search("python", max_results=5)
-    GB->>+HTTP: GET https://www.googleapis.com/books/v1/volumes?q=python&maxResults=5&key=API_KEY
+    Svc->>GB: search("python", max_results=5)
+    GB->>HTTP: GET https://www.googleapis.com/books/v1/volumes?q=python&maxResults=5&key=API_KEY
 
     loop Hasta 3 intentos si 429/5xx
-        HTTP->>+Books: HTTPS GET volumes
+        HTTP->>Books: HTTPS GET volumes
         alt Respuesta OK (200)
-            Books-->>-HTTP: 200 OK + JSON
-            HTTP-->>-GB: httpx.Response
+            Books-->>HTTP: 200 OK + JSON
+            HTTP-->>GB: httpx.Response
         else 429 / 5xx
             Books-->>HTTP: 429 Too Many Requests
             HTTP->>HTTP: sleep(1s/2s/4s + jitter)
@@ -39,32 +39,32 @@ sequenceDiagram
         end
     end
 
-    GB-->>-Svc: list[dict] items (volumeInfo)
+    GB-->>Svc: list[dict] items (volumeInfo)
 
     Svc->>Svc: dedup en memoria (set de google_id)
 
     loop Por cada item del batch
-        Svc->>+DB: SELECT * FROM books WHERE google_id = ?
+        Svc->>DB: SELECT * FROM books WHERE google_id = ?
         alt No existe (INSERT)
-            DB-->>-Svc: None
+            DB-->>Svc: None
             Svc->>DB: _parse_volume_info() -> INSERT Book
             Svc->>Svc: new_count++
         else Ya existe (UPDATE)
-            DB-->>-Svc: Book row
+            DB-->>Svc: Book row
             Svc->>DB: UPDATE campos + updated_at
             Svc->>Svc: updated_count++
         end
     end
 
     alt Commit exitoso
-        Svc->>+DB: COMMIT
-        DB-->>-Svc: OK
+        Svc->>DB: COMMIT
+        DB-->>Svc: OK
         Svc->>Svc: logger.info(query, results, new, updated, elapsed_ms)
-        Svc-->>-API: list[Book]
-        API-->>-User: 200 OK + JSON list[BookRead]
+        Svc-->>API: list[Book]
+        API-->>User: 200 OK + JSON list[BookRead]
     else Excepcion durante el batch
-        Svc->>+DB: ROLLBACK
-        DB-->>-Svc: OK
+        Svc->>DB: ROLLBACK
+        DB-->>Svc: OK
         Svc-->>API: raise ExternalAPIError / ValueError
         API-->>User: 502 / 422 + {detail, type}
     end
