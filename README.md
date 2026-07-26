@@ -124,6 +124,20 @@ docker compose run --rm api pytest
 - Agregar paginación y búsqueda en la UI.
 - Añadir cache de resultados.
 - Mejorar handling de cuotas de Google Books.
+- 
+## Diagramas de arquitectura
+
+La documentación visual detallada está en [`docs/diagrams/`](docs/diagrams/README.md):
+
+| # | Diagrama | Cubre |
+|---|---|---|
+| 1 | [Arquitectura general (4 capas)](docs/diagrams/01-arquitectura-general.md) | Niveles 1, 2, 5, 6 |
+| 2 | [Modelo de datos (ER)](docs/diagrams/02-modelo-datos.md) | Nivel 4 |
+| 3 | [Flujo de sincronización](docs/diagrams/03-flujo-sincronizacion.md) | Niveles 3, 4, 6 |
+| 4 | [Secuencia UML del sync](docs/diagrams/04-secuencia-sync.md) | Niveles 3, 6 |
+| 5 | [Despliegue (local vs producción)](docs/diagrams/05-despliegue.md) | Niveles 1, 7 |
+
+Todos están escritos en Mermaid y se renderizan automáticamente en GitHub. Incluyen notas sobre dedup, caché, reintentos, cold start y limitaciones del plan gratuito de Render.
 
 ## Proceso de despliegue
 
