@@ -280,43 +280,44 @@ La app queda escuchando en `0.0.0.0:8000`. Ya está lista para recibir requests.
 
 Tomemos como ejemplo un `GET /` (abrir el dashboard):
 
-```
-[Browser]
-    │
-    │  GET /  HTTP/1.1
-    │  Host: localhost:8000
-    ▼
-[Middleware: log_requests]
-    │  log "Request start GET /"
-    ▼
-[FastAPI router]
-    │  Resuelve ruta "/" → routes.home()
-    │  Resuelve Depends: get_db() y get_book_service()
-    ▼
-[get_db]
-    │  Abre sesión SQLAlchemy: SessionLocal()
-    │  yield session
-    ▼
-[get_book_service]
-    │  settings = get_settings()           ← lee .env
-    │  client = GoogleBooksClient(api_key) ← crea cliente HTTP
-    │  service = BookService(db, client)  ← instancia del servicio
-    │  return service
-    ▼
-[routes.home]
-    │  books = service.list_books()        ← SELECT * FROM books
-    │  → []  (vacío la primera vez)
-    │  rendered = templates.TemplateResponse("index.html", {...})
-    ▼
-[Jinja2]
-    │  Renderiza base.html + index.html
-    │  books = [] → muestra empty state
-    ▼
-[Middleware: log_requests]
-    │  log "Request end GET / status=200 duration_ms=X"
-    ▼
-[Browser]
-    Recibe HTML con la página vacía
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Browser
+    participant MW as Middleware (log_requests)
+    participant Router as FastAPI router
+    participant GetDB as get_db
+    participant GetSvc as get_book_service
+    participant Home as routes.home
+    participant Tpl as Jinja2
+
+    Browser->>MW: GET / HTTP/1.1<br/>Host: localhost:8000
+    MW->>MW: log "Request start GET /"
+    MW->>Router: continúa la petición
+
+    Router->>Router: Resuelve ruta "/" → routes.home()<br/>Resuelve Depends: get_db() y get_book_service()
+
+    Router->>GetDB: get_db()
+    GetDB->>GetDB: Abre sesión SQLAlchemy: SessionLocal()
+    GetDB-->>Router: yield session
+
+    Router->>GetSvc: get_book_service()
+    GetSvc->>GetSvc: settings = get_settings() ← lee .env
+    GetSvc->>GetSvc: client = GoogleBooksClient(api_key) ← crea cliente HTTP
+    GetSvc->>GetSvc: service = BookService(db, client) ← instancia del servicio
+    GetSvc-->>Router: return service
+
+    Router->>Home: routes.home(service)
+    Home->>Home: books = service.list_books() ← SELECT * FROM books
+    Home->>Home: → [] (vacío la primera vez)
+    Home->>Tpl: templates.TemplateResponse("index.html", {...})
+    Tpl->>Tpl: Renderiza base.html + index.html
+    Tpl->>Tpl: books = [] → muestra empty state
+    Tpl-->>Home: rendered
+
+    Home-->>MW: response
+    MW->>MW: log "Request end GET / status=200 duration_ms=X"
+    MW-->>Browser: Recibe HTML con la página vacía
 ```
 
 **Observación importante:** `BookService` se crea **por cada request**. Esto significa
