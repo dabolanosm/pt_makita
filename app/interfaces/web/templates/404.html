@@ -4,13 +4,19 @@
 
 {% block content %}
   <div class="error-container">
+    <div class="error-illustration" aria-hidden="true">
+      <svg viewBox="0 0 160 120">
+        <rect x="24" y="24" width="112" height="72" rx="16" fill="none" stroke="currentColor" stroke-width="3"></rect>
+        <path d="M58 44h44" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M58 58h28" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+        <path d="M58 72h36" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+        <circle cx="120" cy="44" r="12" fill="none" stroke="currentColor" stroke-width="3"></circle>
+        <path d="M116 44l4 4 8-8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </div>
     <h1 class="error-code">404</h1>
     <h2 class="error-title">Página no encontrada</h2>
-    <p class="error-message">
-      Lo sentimos, la página que buscas no existe. Verifica la URL e intenta nuevamente.
-    </p>
-    <a href="/" class="button button-primary">
-      ← Volver a mi biblioteca
-    </a>
+    <p class="error-message">Lo sentimos, la página que buscas no existe. Verifica la URL e intenta nuevamente.</p>
+    <a href="/" class="button button-primary">Volver</a>
   </div>
 {% endblock %}

@@ -188,6 +188,11 @@ class ModalManager {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.add('active');
+      document.body.classList.add('modal-open');
+      const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusable) {
+        focusable.focus();
+      }
     }
   }
 
@@ -195,6 +200,7 @@ class ModalManager {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.remove('active');
+      document.body.classList.remove('modal-open');
     }
   }
 
@@ -203,6 +209,12 @@ class ModalManager {
     if (modal) {
       modal.addEventListener('click', e => {
         if (e.target === modal) {
+          this.close(modalId);
+        }
+      });
+
+      modal.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
           this.close(modalId);
         }
       });
@@ -258,7 +270,7 @@ class MultiSelectManager {
     const selected = document.querySelectorAll('.book-select:checked');
     
     if (this.toolbar) {
-      this.toolbar.style.display = selected.length > 0 ? 'flex' : 'none';
+      this.toolbar.classList.toggle('is-hidden', selected.length === 0);
     }
 
     if (this.countElement) {
@@ -318,6 +330,88 @@ class MultiSelectManager {
 // INICIALIZACIÓN EN DOCUMENT READY
 // ============================================================================
 
+function initializeSearchModeTabs() {
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+  const form = document.getElementById('search-mode-form');
+  const input = document.getElementById('search-query-input');
+  const button = document.getElementById('search-submit-button');
+  const help = document.getElementById('search-mode-help');
+
+  if (!form || !input || !button || tabs.length === 0) {
+    return;
+  }
+
+  const modeConfig = {
+    local: {
+      action: '/web/search/local',
+      buttonText: 'Buscar en mi biblioteca',
+      placeholder: 'Busca en tu biblioteca...',
+      helpText: 'Busca títulos, autores o categorías que ya tienes guardados en tu colección.',
+      ariaLabel: 'Buscar en biblioteca',
+    },
+    google: {
+      action: '/web/search/google',
+      buttonText: 'Buscar en Google',
+      placeholder: 'Busca en Google Books...',
+      helpText: 'Consulta Google Books y añade resultados a tu biblioteca en segundos.',
+      ariaLabel: 'Buscar en Google Books',
+    },
+    sync: {
+      action: '/web/sync',
+      buttonText: 'Sincronizar',
+      placeholder: 'Sincroniza una búsqueda personalizada...',
+      helpText: 'Importa resultados desde Google Books directamente a tu colección.',
+      ariaLabel: 'Sincronizar desde Google Books',
+    },
+  };
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
+      const config = modeConfig[mode];
+      if (!config) return;
+
+      tabs.forEach(item => {
+        const isActive = item === tab;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-selected', String(isActive));
+      });
+
+      form.action = config.action;
+      button.textContent = config.buttonText;
+      input.placeholder = config.placeholder;
+      input.setAttribute('aria-label', config.ariaLabel);
+      if (help) {
+        help.textContent = config.helpText;
+      }
+    });
+  });
+}
+
+function initializeBookSelectionButtons() {
+  const toggles = Array.from(document.querySelectorAll('.book-select-toggle'));
+  if (toggles.length === 0) return;
+
+  toggles.forEach(toggle => {
+    toggle.addEventListener('click', () => {
+      const bookId = toggle.dataset.bookId;
+      const hiddenCheckbox = document.querySelector(`.book-select[value="${bookId}"]`);
+
+      if (!hiddenCheckbox) {
+        return;
+      }
+
+      hiddenCheckbox.checked = !hiddenCheckbox.checked;
+      toggle.setAttribute('aria-pressed', String(hiddenCheckbox.checked));
+      toggle.textContent = hiddenCheckbox.checked ? 'Seleccionado' : 'Seleccionar';
+
+      if (window.multiSelectManager) {
+        window.multiSelectManager.update();
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Inicializar gestor de temas
   new ThemeManager();
@@ -331,6 +425,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicializar gestor de selección múltiple
   window.multiSelectManager = new MultiSelectManager();
+
+  // Inicializar tabs de búsqueda
+  initializeSearchModeTabs();
+
+  // Inicializar selección de libros desde botones
+  initializeBookSelectionButtons();
 
   // Configurar click exterior para cerrar modales
   ModalManager.closeOnBackdropClick('deleteModal');

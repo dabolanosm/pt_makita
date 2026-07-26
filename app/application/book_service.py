@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from datetime import datetime
 from typing import Optional
 
@@ -14,49 +13,11 @@ from app.infrastructure.external_books_client import GoogleBooksClient
 
 logger = logging.getLogger(__name__)
 
-CACHE_TTL_SECONDS = 60
-
 
 class BookService:
     def __init__(self, db: Session, books_client: GoogleBooksClient) -> None:
         self.db = db
         self.books_client = books_client
-        self._query_cache: dict[str, tuple[list[dict], float]] = {}
-
-    def _normalize_query(self, query: str) -> str:
-        """Normalize query for cache key (lowercase, strip whitespace)."""
-        return query.lower().strip()
-
-    def _get_from_cache(self, query: str) -> list[dict] | None:
-        """Get cached result if it exists and is not expired."""
-        cache_key = self._normalize_query(query)
-        if cache_key in self._query_cache:
-            result, timestamp = self._query_cache[cache_key]
-            if time.time() - timestamp < CACHE_TTL_SECONDS:
-                logger.info("Cache hit for query: %s", query)
-                return result
-            else:
-                del self._query_cache[cache_key]
-                logger.info("Cache expired for query: %s", query)
-        return None
-
-    def _set_in_cache(self, query: str, result: list[dict]) -> None:
-        """Store result in cache with current timestamp."""
-        cache_key = self._normalize_query(query)
-        self._query_cache[cache_key] = (result, time.time())
-        logger.info("Cached result for query: %s", query)
-
-    def _clean_expired_cache(self) -> None:
-        """Remove expired entries from cache."""
-        current_time = time.time()
-        expired_keys = [
-            key for key, (_, timestamp) in self._query_cache.items()
-            if current_time - timestamp >= CACHE_TTL_SECONDS
-        ]
-        for key in expired_keys:
-            del self._query_cache[key]
-        if expired_keys:
-            logger.debug("Cleaned %d expired cache entries", len(expired_keys))
 
     def list_books(self, skip: int = 0, limit: int = 50) -> list[Book]:
         """List all books with pagination."""
@@ -140,17 +101,11 @@ class BookService:
         return await self.books_client.search(query=query, max_results=max_results)
 
     async def sync_from_query(self, query: str, max_results: int = 10) -> list[Book]:
-        """Sync books from Google Books query, with caching and deduplication."""
+        """Sync books from Google Books query with deduplication and transactional persistence."""
         if max_results > 10:
             raise ValueError("max_results must be 10 or less")
 
-        # Check cache first
-        cached_items = self._get_from_cache(query)
-        if cached_items is not None:
-            items = cached_items
-        else:
-            items = await self.books_client.search(query=query, max_results=max_results)
-            self._set_in_cache(query, items)
+        items = await self.books_client.search(query=query, max_results=max_results)
 
         saved_books: list[Book] = []
         new_count = 0

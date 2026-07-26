@@ -4,43 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Book Library Sync{% endblock %}</title>
-  
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Estilos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
-  <style>
-    /* Estilos críticos inline para evitar FOUC */
-    :root {
-      --font-serif: 'Lora', serif;
-      --font-sans: 'Inter', sans-serif;
-    }
-  </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Saltar al contenido</a>
+
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="/">📚 Book Library Sync</a>
-      <nav class="nav-links">
-        <a href="/" aria-label="Inicio">Inicio</a>
-        <a href="/docs" aria-label="Documentación de API">API Docs</a>
-        <button id="theme-toggle" aria-label="Cambiar tema" title="Cambiar a modo oscuro">
-          <span id="theme-icon">🌙</span>
+      <a class="brand" href="/">Book Library<span class="brand-dot">.</span></a>
+      <nav class="nav-links" aria-label="Navegación principal">
+        <a class="nav-link" href="/" aria-label="Inicio"><span>Inicio</span></a>
+        <a class="nav-link" href="/docs" aria-label="Documentación de API"><span>API Docs</span></a>
+        <button id="theme-toggle" class="icon-button" type="button" aria-label="Cambiar tema" title="Cambiar a modo oscuro">
+          <span class="icon" id="theme-icon">🌙</span>
         </button>
       </nav>
     </div>
   </header>
 
-  <main class="container">
-    <div id="toastContainer" class="toast-container"></div>
+  <main id="main" class="container" tabindex="-1">
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
     {% if message %}
-      <div id="message-display" data-message="{{ message }}" data-type="success" style="display: none;"></div>
+      <div id="message-display" data-message="{{ message }}" data-type="success" class="visually-hidden"></div>
     {% endif %}
     {% if error %}
-      <div id="error-display" data-error="{{ error }}" data-type="error" style="display: none;"></div>
+      <div id="error-display" data-error="{{ error }}" data-type="error" class="visually-hidden"></div>
     {% endif %}
     {% block content %}{% endblock %}
   </main>
@@ -49,7 +40,6 @@
     <div class="container">Book Library Sync · Demo técnica</div>
   </footer>
 
-  <!-- JavaScript global -->
   <script src="/static/app.js" defer></script>
 </body>
 </html>

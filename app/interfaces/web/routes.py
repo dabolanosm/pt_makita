@@ -61,10 +61,14 @@ def _serialize_book(book: Book) -> dict:
         "description": book.description,
         "page_count": book.page_count,
         "categories": categories,
+        "categories_list": categories,
         "categories_text": ", ".join(categories) if categories else "Ninguna",
         "language": book.language,
         "thumbnail_url": book.thumbnail_url,
         "preview_link": book.preview_link,
+        "google_id": book.google_id,
+        "created_at": book.created_at,
+        "updated_at": book.updated_at,
     }
 
 

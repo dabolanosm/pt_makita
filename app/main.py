@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -56,7 +57,8 @@ async def _fastapi_validation_error_handler(request: Request, exc: RequestValida
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Book Library Sync", version="0.1.0", lifespan=lifespan)
-    app.mount("/static", StaticFiles(directory="app/interfaces/web/static"), name="static")
+    static_dir = Path(__file__).resolve().parent / "interfaces" / "web" / "static"
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
     app.add_exception_handler(ExternalAPIError, _external_api_error_handler)
     app.add_exception_handler(NotFoundError, _not_found_error_handler)
     app.add_exception_handler(ValidationError, _validation_error_handler)

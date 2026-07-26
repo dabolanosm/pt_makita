@@ -14,7 +14,6 @@ sequenceDiagram
     actor User as 👤 Cliente
     participant API as ⚙️ FastAPI<br/>(sync.py)
     participant Svc as 📚 BookService<br/>(book_service.py)
-    participant Cache as 🗃️ _query_cache<br/>(in-memory dict)
     participant GB as 🌐 GoogleBooksClient
     participant HTTP as 🔌 HttpClient<br/>(httpx)
     participant Books as 🌍 Google Books API
@@ -24,12 +23,7 @@ sequenceDiagram
     API->>API: Pydantic valida SyncRequest<br/>(max_results ≤ 10)
     API->>+Svc: sync_from_query(query, max_results=5)
 
-    Svc->>Svc: _normalize_query("python") = "python"
-
-    Svc->>+Cache: _get_from_cache("python")
-    alt Cache MISS (caso mostrado)
-        Cache-->>-Svc: None
-        Svc->>+GB: search("python", max_results=5)
+    Svc->>+GB: search("python", max_results=5)
         GB->>+HTTP: GET https://www.googleapis.com/books/v1/volumes<br/>?q=python&maxResults=5&key=API_KEY
 
         loop Hasta 3 intentos si 429/5xx
@@ -45,10 +39,6 @@ sequenceDiagram
         end
 
         GB-->>-Svc: list[dict] items (volumeInfo)
-        Svc->>Cache: _set_in_cache("python", items)
-    else Cache HIT
-        Cache-->>Svc: items en caché (TTL 60s)
-        Note over Svc: evita llamada externa
     end
 
     Svc->>Svc: dedup en memoria (set de google_id)
@@ -82,13 +72,9 @@ sequenceDiagram
 
 ## Notas de la secuencia
 
-- **El lifespan importa**: `Cache` es un `dict` en memoria del proceso `BookService`,
-  que FastAPI crea **por request** vía `Depends`. Esto significa que, en la práctica,
-  la caché tiene una vida efectiva de **un request** (cada request obtiene un
-  `BookService` nuevo). Esto es un **bug menor** ya conocido: la implementación del
-  caché existe pero no es efectiva con el wiring actual. Documentado en
-  `docs/DECISIONS.md` como mejora pendiente. (Ver `app/interfaces/api/sync.py`
-  `get_book_service`.)
+- **Sin caché de consultas**: el flujo actual consulta directamente la API externas en
+  cada request y persiste los resultados de forma consistentes. Esto evita confiar en
+  un estado transitorio que no aporta valor real con el wiring actual.
 - **Los reintentos solo son útiles en errores 5xx/429**. Errores 4xx de Google (key
   inválida, quota excedida) se devuelven al cliente de inmediato sin reintentar.
 - **`BookService` es async** pero `BookService.__init__` no, porque la sesión

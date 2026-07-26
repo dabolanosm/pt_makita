@@ -4,17 +4,14 @@
 
 Este diagrama de flujo describe el camino completo que recorre una petición
 `POST /api/sync` desde que el cliente envía la consulta hasta que los libros quedan
-persistidos en SQLite, incluyendo los caminos de caché, reintento, dedup, error y
+persistidos en SQLite, incluyendo los caminos de reintento, dedup, error y
 validación.
 
 ```mermaid
 flowchart TD
     Start(["📥 POST /api/sync<br/>body: {query, max_results}"]) --> Validate1{"¿max_results ≤ 10?"}
     Validate1 -->|No| Err400["❌ ValidationError 422<br/>'max_results must be 10 or less'"]
-    Validate1 -->|Sí| CacheCheck{"¿query en<br/>_query_cache<br/>y TTL válido?"}
-
-    CacheCheck -->|Sí · HIT| UseCache["📦 Reutilizar items<br/>del caché (60s TTL)"]
-    CacheCheck -->|No · MISS| CallGB["🌐 GET volumes?q=&maxResults=<br/>Google Books API"]
+    Validate1 -->|Sí| CallGB["🌐 GET volumes?q=&maxResults=<br/>Google Books API"]
 
     CallGB --> HTTPGet["HttpClient.get<br/>async con reintentos"]
     HTTPGet --> NetOK{"¿Respuesta<br/>válida?"}
@@ -26,7 +23,6 @@ flowchart TD
     NetOK -->|RequestError| ErrNet["❌ ExternalAPIError 502<br/>'Network error contacting Google Books'"]
     NetOK -->|2xx| ParseResp["Parsear response.json()<br/>extraer items[]"]
 
-    UseCache --> Dedup
     ParseResp --> Dedup["🧹 Dedup en memoria<br/>set de google_id"]
 
     Dedup --> LoopStart{"Para cada item"}
@@ -46,19 +42,16 @@ flowchart TD
     Skip --> LoopStart
 
     LoopStart -->|fin del batch| Commit["💾 db.commit()"]
-    Commit --> CacheStore["📦 _set_in_cache(query, items)"]
-    CacheStore --> LogOK["📝 log info:<br/>query · results · new · updated · elapsed_ms"]
+    Commit --> LogOK["📝 log info:<br/>query · results · new · updated · elapsed_ms"]
     LogOK --> Respond(["✅ 200 OK<br/>list[BookRead]"])
 
     %% Estilo
     classDef ok fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef err fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-    classDef cache fill:#fef9c3,stroke:#ca8a04,color:#713f12
     classDef ext fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a
 
     class Respond,Commit,Insert,Update,LogOK ok
     class Err400,Err502,ErrClient,ErrNet err
-    class CacheCheck,UseCache,CacheStore cache
     class CallGB,HTTPGet,NetOK,RetryCheck,Backoff ext
 ```
 
@@ -67,9 +60,10 @@ flowchart TD
 1. **Validación de entrada** — `max_results` está limitado a 10 en el `Pydantic Field`
    (`sync.py`) **y** se vuelve a verificar en `BookService.sync_from_query()` por
    seguridad. Es un cinturón + tirantes.
-2. **Caché de consultas** — Implementado como `dict[str, tuple[list, float]]` en memoria
-   del proceso. TTL de **60 s**. La clave es la query normalizada (lower + strip). No
-   sobrevive reinicios. No es compartido entre réplicas.
+2. **Sin caché de consultas** — Se decidió eliminar la caché en memoria porque, con el
+   wiring actual de FastAPI, no aporta un beneficio real y podía generar confusión sobre
+   si una búsqueda reutilizaba resultados previos. La sincronización consulta a Google
+   Books en cada request y persiste los resultados de forma determinista.
 3. **Reintentos con backoff exponencial y jitter** — Manejado en `HttpClient.get()`:
    hasta 3 intentos, delays `[1s, 2s, 4s]` con jitter `[0, 0.5s]`. Solo reintenta
    códigos `429, 500, 502, 503, 504`. Errores 4xx se devuelven al cliente de inmediato.

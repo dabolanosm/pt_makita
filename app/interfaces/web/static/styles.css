@@ -78,6 +78,38 @@ body {
   transition: var(--transition);
 }
 
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 3000;
+  background: var(--accent);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius-sm);
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
 /* ============================================================================
    TIPOGRAFÍA
    ============================================================================ */
@@ -315,6 +347,13 @@ input[type="search"]::placeholder {
   color: var(--text-secondary);
 }
 
+.toolbar-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
 .search-form input {
   flex: 1 1 200px;
   min-width: 0;
@@ -519,11 +558,17 @@ input[type="submit"]:disabled {
   display: contents;
 }
 
-.book-checkbox {
-  width: 1.25rem;
-  height: 1.25rem;
-  cursor: pointer;
-  accent-color: var(--accent);
+.book-select-toggle {
+  align-self: flex-start;
+  border-color: var(--border);
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+.book-select-toggle[aria-pressed="true"] {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ============================================================================
@@ -823,6 +868,64 @@ img {
 
 .detail-info h1 {
   margin-bottom: 0.5rem;
+}
+
+.detail-nav {
+  margin-bottom: 1.5rem;
+}
+
+.detail-author {
+  font-size: var(--font-size-lg);
+  margin: 1rem 0;
+}
+
+.detail-categories {
+  margin-top: 1.5rem;
+}
+
+.detail-categories .detail-meta-label {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.detail-description {
+  margin-top: 3rem;
+}
+
+.detail-description-box {
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border);
+}
+
+.detail-technical {
+  margin-top: 2rem;
+  opacity: 0.8;
+  font-size: var(--font-size-sm);
+}
+
+.detail-technical-list {
+  margin-top: 0.5rem;
+  padding-left: 1.5rem;
+}
+
+.technical-code {
+  background-color: var(--bg-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.detail-placeholder {
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 2 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius-lg);
+  font-size: 4rem;
 }
 
 .detail-meta {

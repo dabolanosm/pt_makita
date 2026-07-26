@@ -43,3 +43,22 @@ async def test_sync_from_query_deduplicates_by_google_id(in_memory_session):
     assert len(books) == 1
     count = in_memory_session.query(Book).count()
     assert count == 1
+
+
+@pytest.mark.asyncio
+async def test_sync_from_query_retries_google_lookup_on_repeated_calls(in_memory_session):
+    class FakeBooksClient:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def search(self, query: str, max_results: int = 10) -> list[dict]:
+            self.calls += 1
+            return [{"id": "g1", "volumeInfo": {"title": "Book", "authors": ["Author"]}}]
+
+    client = FakeBooksClient()
+    service = BookService(db=in_memory_session, books_client=client)
+
+    await service.sync_from_query(query="python", max_results=1)
+    await service.sync_from_query(query="python", max_results=1)
+
+    assert client.calls == 2
