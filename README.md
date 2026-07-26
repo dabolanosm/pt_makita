@@ -57,32 +57,22 @@ Para el detalle del despliegue en Render consulta [`docs/DEPLOY.md`](docs/DEPLOY
 
 ## 2. Arquitectura en 4 capas
 
-El proyecto sigue una **separación de responsabilidades estricta** en cuatro capas, cada
-una con un único motivo para cambiar:
+El proyecto sigue una **separación estricta de responsabilidades** en cuatro capas, donde cada una cumple un propósito específico y claramente delimitado.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  interfaces/   Capa de presentación                              │
-│  - REST API (FastAPI routers)                                    │
-│  - Web UI (Jinja2 templates + JS estático)                       │
-│  Responsabilidad: traducir HTTP ↔ casos de uso                   │
-├──────────────────────────────────────────────────────────────────┤
-│  application/  Capa de aplicación (orquestación)                 │
-│  - BookService                                                    │
-│  Responsabilidad: reglas de negocio, transacciones, dedup        │
-├──────────────────────────────────────────────────────────────────┤
-│  infrastructure/  Capa de infraestructura                       │
-│  - HttpClient (httpx con retry+jitter)                          │
-│  - GoogleBooksClient (cliente específico de la API)              │
-│  - db.py (SQLAlchemy engine + sessions)                          │
-│  Responsabilidad: hablar con el mundo exterior (red, DB)        │
-├──────────────────────────────────────────────────────────────────┤
-│  domain/  Capa de dominio                                        │
-│  - Book (modelo ORM)                                              │
-│  - BookCreate / BookUpdate / BookRead (schemas Pydantic)         │
-│  Responsabilidad: modelar la realidad (un libro y sus reglas)    │
-└──────────────────────────────────────────────────────────────────┘
-```
+| Capa                | Propósito                 | Componentes principales                                                                                 | Responsabilidad                                                  |
+| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **interfaces/**     | Presentación              | REST API (routers de FastAPI), Web UI (plantillas Jinja2 + JavaScript estático)                         | Traducir entre HTTP y los casos de uso del sistema.              |
+| **application/**    | Aplicación / orquestación | `BookService`                                                                                           | Coordinar reglas de negocio, transacciones y deduplicación.      |
+| **infrastructure/** | Infraestructura           | `HttpClient` (httpx con retry + jitter), `GoogleBooksClient`, `db.py` (engine y sessions de SQLAlchemy) | Conectar el sistema con servicios externos, red y base de datos. |
+| **domain/**         | Dominio                   | `Book` (modelo ORM), `BookCreate`, `BookUpdate`, `BookRead` (schemas Pydantic)                          | Representar la entidad principal y sus reglas de negocio.        |
+
+### Lectura rápida
+
+* **interfaces**: recibe solicitudes y expone respuestas.
+* **application**: define el flujo de ejecución.
+* **infrastructure**: implementa dependencias técnicas.
+* **domain**: concentra el modelo conceptual del negocio.
+
 
 **Regla de dependencias:** cada capa solo puede importar de las capas inferiores.
 `domain` no conoce FastAPI ni SQLAlchemy directo. `application` no conoce HTTP ni
