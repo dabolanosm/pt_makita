@@ -156,6 +156,9 @@ class BookService:
 
     def _parse_volume_info(self, volume_info: dict) -> dict:
         """Parse Google Books volumeInfo into Book fields."""
+        image_links = volume_info.get("imageLinks", {}) or {}
+        thumbnail_url = self._select_best_thumbnail(image_links)
+
         return {
             "title": volume_info.get("title", "Unknown"),
             "authors": json.dumps(volume_info.get("authors", [])),
@@ -165,6 +168,14 @@ class BookService:
             "page_count": volume_info.get("pageCount"),
             "categories": json.dumps(volume_info.get("categories", [])),
             "language": volume_info.get("language", "en"),
-            "thumbnail_url": volume_info.get("imageLinks", {}).get("thumbnail"),
+            "thumbnail_url": thumbnail_url,
             "preview_link": volume_info.get("previewLink"),
         }
+
+    def _select_best_thumbnail(self, image_links: dict) -> Optional[str]:
+        """Pick the highest-quality available thumbnail from Google Books image links."""
+        for key in ("extraLarge", "large", "medium", "small", "thumbnail", "smallThumbnail"):
+            value = image_links.get(key)
+            if value:
+                return value
+        return None
