@@ -329,6 +329,8 @@ especificación OpenAPI en JSON en **`/openapi.json`**.
 | `POST` | `/api/sync` | Sincroniza desde Google Books con una query arbitraria | `200` · `422` si `max_results > 10` · `502` si Google falla |
 | `POST` | `/api/sync/seed?confirm=true` | Sincroniza las 6 búsquedas semilla (python, sci-fi, colombia, etc.) | `200` · `422` sin `confirm=true` · `502` si alguna falla |
 
+> Nota: Google Books puede devolver errores 503 o 5xx por saturación o mantenimiento temporal de su servicio. La app reintenta de forma exponencial y, si el fallo persiste, termina respondiendo con `502` como `ExternalAPIError`.
+
 **Ejemplo para `POST /api/sync`:**
 
 ```json
