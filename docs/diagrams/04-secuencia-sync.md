@@ -11,35 +11,35 @@ involucrados y los returns condicionales (caché HIT vs MISS, retry, dedup, comm
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as 👤 Cliente
-    participant API as ⚙️ FastAPI<br/>(sync.py)
-    participant Svc as 📚 BookService<br/>(book_service.py)
-    participant GB as 🌐 GoogleBooksClient
-    participant HTTP as 🔌 HttpClient<br/>(httpx)
-    participant Books as 🌍 Google Books API
-    participant DB as 💾 SQLAlchemy<br/>(SQLite)
+    actor User as Cliente
+    participant API as FastAPI (sync.py)
+    participant Svc as BookService (book_service.py)
+    participant GB as GoogleBooksClient
+    participant HTTP as HttpClient (httpx)
+    participant Books as Google Books API
+    participant DB as SQLAlchemy (SQLite)
 
-    User->>+API: POST /api/sync<br/>{query: "python", max_results: 5}
-    API->>API: Pydantic valida SyncRequest<br/>(max_results ≤ 10)
+    User->>+API: POST /api/sync
+    Note over API: body: {query: "python", max_results: 5}
+    API->>API: Pydantic valida SyncRequest (max_results <= 10)
     API->>+Svc: sync_from_query(query, max_results=5)
 
     Svc->>+GB: search("python", max_results=5)
-        GB->>+HTTP: GET https://www.googleapis.com/books/v1/volumes<br/>?q=python&maxResults=5&key=API_KEY
+    GB->>+HTTP: GET https://www.googleapis.com/books/v1/volumes?q=python&maxResults=5&key=API_KEY
 
-        loop Hasta 3 intentos si 429/5xx
-            HTTP->>+Books: HTTPS GET volumes
-            alt Respuesta OK (200)
-                Books-->>-HTTP: 200 OK + JSON
-                HTTP-->>-GB: httpx.Response
-            else 429 / 5xx
-                Books-->>HTTP: 429 Too Many Requests
-                HTTP->>HTTP: sleep(1s/2s/4s + jitter)
-                Note over HTTP: reintento
-            end
+    loop Hasta 3 intentos si 429/5xx
+        HTTP->>+Books: HTTPS GET volumes
+        alt Respuesta OK (200)
+            Books-->>-HTTP: 200 OK + JSON
+            HTTP-->>-GB: httpx.Response
+        else 429 / 5xx
+            Books-->>HTTP: 429 Too Many Requests
+            HTTP->>HTTP: sleep(1s/2s/4s + jitter)
+            Note over HTTP: reintento
         end
-
-        GB-->>-Svc: list[dict] items (volumeInfo)
     end
+
+    GB-->>-Svc: list[dict] items (volumeInfo)
 
     Svc->>Svc: dedup en memoria (set de google_id)
 
@@ -47,7 +47,7 @@ sequenceDiagram
         Svc->>+DB: SELECT * FROM books WHERE google_id = ?
         alt No existe (INSERT)
             DB-->>-Svc: None
-            Svc->>DB: _parse_volume_info() → INSERT Book
+            Svc->>DB: _parse_volume_info() -> INSERT Book
             Svc->>Svc: new_count++
         else Ya existe (UPDATE)
             DB-->>-Svc: Book row
@@ -62,7 +62,7 @@ sequenceDiagram
         Svc->>Svc: logger.info(query, results, new, updated, elapsed_ms)
         Svc-->>-API: list[Book]
         API-->>-User: 200 OK + JSON list[BookRead]
-    else Excepción durante el batch
+    else Excepcion durante el batch
         Svc->>+DB: ROLLBACK
         DB-->>-Svc: OK
         Svc-->>API: raise ExternalAPIError / ValueError
@@ -100,7 +100,7 @@ sequenceDiagram
     API->>API: iterar sobre SEARCH_SEED_QUERIES (6)
     loop Por cada query semilla
         API->>+Svc: sync_from_query(query, 5)
-        Svc->>+Books: GET volumes?q=<seed>
+        Svc->>+Books: GET volumes?q=seed
         Books-->>-Svc: items
         Svc-->>-API: list[Book]
         API->>API: extender synced_books
@@ -113,9 +113,9 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as 👤 Usuario
-    participant UI as 🖥️ Jinja2 form
-    participant Web as Web Router<br/>(routes.py)
+    actor User as Usuario
+    participant UI as Jinja2 form
+    participant Web as Web Router (routes.py)
     participant Svc as BookService
     participant Books as Google Books API
 
@@ -125,6 +125,6 @@ sequenceDiagram
     Svc->>+Books: GET volumes
     Books-->>-Svc: items
     Svc-->>-Web: list[Book]
-    Web-->>-UI: 303 Redirect → /?message=...
+    Web-->>-UI: 303 Redirect -> /?message=...
     UI-->>-User: dashboard actualizado
 ```
