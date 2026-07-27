@@ -141,9 +141,10 @@ operativa del segundo ecosistema.
 > 📌 **Honestidad del proceso.** La evaluación previa identificó los
 > problemas listados arriba, pero **no se llegó a desplegar un contenedor
 > funcional de Pressbooks** dentro del ciclo de la prueba. La sustitución
-> se justificó en el análisis, no en un intento de despliegue concreto
-> que apareciera en los commits. Esto se reconoce explícitamente como una
-> limitación del proceso y se documenta en [13](#13-limitaciones-conocidas-y-trabajo-pendiente).
+> se justificó en el análisis, se hizo un intento de despliegue concreto
+> que no apareciera en los commits ya que el intento no fue funcional. 
+> Esto se reconoce explícitamente como una limitación del proceso 
+> y se documenta en [13](#13-limitaciones-conocidas-y-trabajo-pendiente).
 
 #### 1.2.4. Cómo se integraría Pressbooks después (sin rehacer la API)
 
