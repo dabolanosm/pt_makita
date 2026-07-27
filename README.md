@@ -52,7 +52,7 @@ la capacidad de descubrir nuevos títulos usando una API externa reconocida
 -   🔁 **Manejo robusto de errores** con reintentos exponenciales sobre la API
     externa.
 
-**Qué NO es** (ver también [§13](#13-limitaciones-conocidas-y-trabajo-pendiente)):
+**Qué NO es** (ver también [13](#13-limitaciones-conocidas-y-trabajo-pendiente)):
 
 -   No es un catálogo público ni un sistema multi-usuario.
 -   No tiene autenticación (es una demo técnica de un solo usuario).
@@ -62,11 +62,11 @@ la capacidad de descubrir nuevos títulos usando una API externa reconocida
 | Nivel | Qué pide el enunciado                                  | Estado                                                    |
 | ----- | ------------------------------------------------------ | --------------------------------------------------------- |
 | 1     | Estructura de proyecto + entorno Dockerizado           | ✅ Completo                                               |
-| 2     | Pressbooks como componente principal                   | 🔁 Sustituido — proceso documentado en [§1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación) |
+| 2     | Pressbooks como componente principal                   | 🔁 Sustituido — proceso documentado en [1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación) |
 | 3     | Integración con API externa autenticada                | ✅ Completo                                               |
 | 4     | Modelo de datos + almacenamiento                       | ✅ Completo                                               |
 | 5     | API propia documentada                                 | ✅ Completo                                               |
-| 6     | Integración entre componentes                          | ✅ Cubierto dentro del stack — ver [§1.3](#13-nivel-6-con-esta-arquitectura) |
+| 6     | Integración entre componentes                          | ✅ Cubierto dentro del stack — ver [1.3](#13-nivel-6-con-esta-arquitectura) |
 | 7     | Publicación en Internet                                | ✅ Completo (activo en Render)                            |
 | 8     | README claro y organizado                              | ✅ Completo                                               |
 
@@ -96,6 +96,7 @@ añade una capa más de orquestación.
 | 3 | **Fricción de stack** | Mantener PHP + MySQL en paralelo al stack Python (FastAPI + SQLAlchemy + SQLite) implica dos sistemas de dependencias, dos bases de datos, dos sistemas de plugins y dos procesos de despliegue. El enunciado permite explícitamente sustituir Pressbooks cuando se justifique. |
 | 4 | **Riesgo de integración con la API externa** | La función estándar de WordPress para consumir APIs externas (`wp_remote_get`) es **síncrona y bloqueante con un timeout de 5 s por defecto**. La comunidad recomienda desacoplar las llamadas a un servicio externo cuando la integración es crítica. Hacer un shortcode de Pressbooks que sincronice con Google Books sin un manejo cuidadoso de timeouts y reintentos era un riesgo alto de páginas colgadas en producción. |
 | 5 | **Errores 503 intermitentes de la API externa** | Google Books devuelve `503 Service Unavailable` por rate limit geográfico o "Cannot determine user location" en IPs de cloud (EC2, Render, etc.). Manejar esos 503 desde un plugin PHP con caché, reintentos exponenciales y degradación elegante es una capa extra de complejidad que añadir al stack PHP. |
+| 6 | **Intento de despliegue local en `localhost:8080`** | Se intentó levantar Pressbooks en el puerto 8080 reutilizando la misma configuración de Docker. La base de datos no se inicializaba correctamente y, al coexistir con el servicio principal en el puerto 8000, la aplicación RestAPI quedaba inaccesible y el contenedor de Pressbooks redirigía a una página por defecto (estilo "example page"). El problema era la compartición del host network y la competencia por recursos entre los dos stacks en un mismo `docker compose up` sin orquestación. |
 
 #### 1.2.3. Decisión final
 
@@ -112,7 +113,7 @@ operativa del segundo ecosistema.
 > funcional de Pressbooks** dentro del ciclo de la prueba. La sustitución
 > se justificó en el análisis, no en un intento de despliegue concreto
 > que apareciera en los commits. Esto se reconoce explícitamente como una
-> limitación del proceso y se documenta en [§13](#13-limitaciones-conocidas-y-trabajo-pendiente).
+> limitación del proceso y se documenta en [13](#13-limitaciones-conocidas-y-trabajo-pendiente).
 
 #### 1.2.4. Cómo se integraría Pressbooks después (sin rehacer la API)
 
@@ -302,7 +303,7 @@ componentes intermedios se ve en los diagramas de
 > llenarlo es llamar a `POST /api/sync` (sincronización desde Google Books)
 > o a `POST /api/books` (creación manual). En Render free tier, el archivo
 > es **efímero** y se borra en cada redeploy. Ver
-> [`docs/DEPLOY.md` §4](docs/DEPLOY.md) para más detalle.
+> [`docs/DEPLOY.md` sección 4](docs/DEPLOY.md) para más detalle.
 
 ### 5.2. Diagrama de secuencia del primer `GET /`
 
@@ -394,7 +395,31 @@ documentación interactiva (Swagger UI con try-it-out) está disponible en
 > geolocalizar la IP de origen (común en entornos cloud). La app
 > reintenta con backoff exponencial y jitter, y si el fallo persiste
 > termina respondiendo con `502` como `ExternalAPIError`. Ver
-> [`docs/DEPLOY.md` §7](docs/DEPLOY.md) para troubleshooting.
+> [`docs/DEPLOY.md` sección 7](docs/DEPLOY.md) para troubleshooting.
+
+#### 6.3.1. Por qué el 503 también aparece usando solo la RestAPI
+
+Un punto que vale la pena aclarar para el evaluador: el `503` **no es un
+fallo de esta aplicación**, sino una restricción de la **capa gratuita de
+Google Books API** y de la geolocalización de las IPs de cloud (Render,
+EC2, fly.io, etc.). La consecuencia directa es:
+
+-   **Límite de cuota sin identificar**: 1 request/segundo por IP.
+-   **Límite de cuota identificada** (con API key): ~3 requests/segundo,
+    suficiente para una demo de un solo usuario pero ajustado para picos.
+-   **`503 "Cannot determine user location"`** cuando Google no puede
+    geolocalizar la IP de origen (frecuente en datacenters compartidos).
+-   **`503` por mantenimiento temporal** de Google Books, sin previo
+    aviso.
+
+Esta capa gratuita de Google Books es, a la vez, lo que hace viable la
+prueba (no requiere tarjeta de crédito) y lo que introduce estos errores
+intermitentes. La aplicación RestAPI los gestiona con reintentos
+exponenciales + jitter; cuando se agota el presupuesto de reintentos,
+responde con `502 ExternalAPIError` para que la UI muestre un toast
+informativo en vez de un error críptico. En la sección
+[`docs/DEPLOY.md` sección 7](docs/DEPLOY.md) hay un troubleshooting con
+los códigos de error exactos.
 
 **Ejemplo para `POST /api/sync`:**
 
@@ -593,10 +618,10 @@ La app está desplegada en
 -   Solo dominio `*.onrender.com` (no se puede custom domain en plan free).
 -   **Errores 503 de Google Books desde Render** son relativamente
     frecuentes por la geolocalización de la IP. La app los maneja con
-    reintentos; ver [§6.3](#63-sincronización-con-google-books).
+    reintentos; ver [6.3](#63-sincronización-con-google-books).
 
 **Soluciones para persistencia** (ver
-[`docs/DEPLOY.md` §5](docs/DEPLOY.md)):
+[`docs/DEPLOY.md` sección 5](docs/DEPLOY.md)):
 
 -   **Opción A**: Render Persistent Disk (1 USD/mes, requiere plan
     starter).
@@ -624,7 +649,7 @@ más relevantes para esta entrega:
 -   **Por qué se sustituyó Pressbooks** → combinación de tiempo limitado,
     recursos necesarios para Docker, fricción de stack Python vs PHP, y
     riesgo de `wp_remote_get` bloqueante en integraciones críticas.
-    Proceso completo en [§1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación).
+    Proceso completo en [1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación).
 -   **Por qué se eliminó el caché de `BookService`** → con el wiring
     actual de FastAPI (`Depends(get_book_service)` por request), el caché
     basado en `self._query_cache` se reiniciaba en cada request, haciendo
@@ -664,12 +689,12 @@ renderiza nativa en GitHub):
 
 Esta sección enumera lo que **no se implementó** y por qué, junto con el
 impacto real que tiene en la demo. Lo que sí se hizo pero podría ser
-mejor está en [§14](#14-pendientes-y-roadmap).
+mejor está en [14](#14-pendientes-y-roadmap).
 
 ### 13.1. Lo que se intentó pero no se completó
 
 -   **Pressbooks como componente principal.** La evaluación técnica
-    identificó los problemas listados en [§1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación),
+    identificó los problemas listados en [1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación),
     pero no se llegó a desplegar un contenedor funcional dentro del
     ciclo de la prueba. La sustitución por la API REST propia se justificó
     en la fase de análisis, no en un intento de despliegue concreto.
@@ -680,12 +705,12 @@ mejor está en [§14](#14-pendientes-y-roadmap).
     ciclo de la prueba hizo que quedara fuera de esta entrega. El
     estado actual es: **API pública sin auth, sin CSRF en forms, sin
     rate limit**. Esto es válido solo porque la app es una demo técnica
-    de un solo usuario (ver §1); en cualquier uso real hay que sumar
+    de un solo usuario (ver la sección 1); en cualquier uso real hay que sumar
     esa capa antes de exponer la URL.
 
 ### 13.2. Limitaciones técnicas que se mantienen
 
--   **SQLite efímero en Render free tier**: ver [§10.2](#102-producción-en-rendercom).
+-   **SQLite efímero en Render free tier**: ver [10.2](#102-producción-en-rendercom).
 -   **Errores 503 de Google Books desde Render** por geolocalización de
     IP: la app los maneja con reintentos exponenciales + jitter, y
     termina con `502 ExternalAPIError` si el fallo persiste.
@@ -723,6 +748,57 @@ Listados en orden de impacto:
 ---
 
 ## 15. Contribuir
+
+### 15.1. Historia y organización de los commits
+
+El repositorio se construyó de forma incremental siguiendo la lógica de
+la prueba técnica (Niveles 1 a 8), con commits que reflejan cada hito
+funcional o de documentación, no lotes grandes mezclados. La idea es que
+cualquier evaluador pueda leer `git log` y reconstruir la evolución del
+proyecto sin abrir cada archivo.
+
+**Hitos principales (resumen cronológico):**
+
+1.  **Núcleo funcional (Niveles 1–6, 8)** — commit inicial con la app
+    completa: estructura de 4 capas, integración con Google Books,
+    deduplicación por `google_id`, CRUD REST, UI Jinja2 y tests
+    básicos. Es la base sobre la que se itera.
+2.  **Despliegue (Nivel 7)** — `Dockerfile` listo para producción,
+    `render.yaml` con la configuración del Blueprint, guía de despliegue
+    paso a paso en `docs/DEPLOY.md` y URL pública activa en Render.
+3.  **Diagramas** — incorporación de los 5 diagramas Mermaid
+    (arquitectura, datos, sync, secuencia, despliegue), primero en ASCII
+    y luego convertidos a Mermaid para mejor renderizado en GitHub.
+4.  **Documentación del proceso Pressbooks** — varios commits honestos
+    sobre la evaluación técnica de Pressbooks como componente principal,
+    por qué se sustituyó, y los problemas identificados (sin imagen
+    oficial en Docker Hub, recursos, fricción de stack, riesgo de
+    `wp_remote_get`, 503 intermitentes).
+5.  **Ajustes de presentación** — fix de centrado de imágenes, mejoras
+    visuales, y correcciones de formato en la tabla de cobertura.
+6.  **Reescritura del README** (este commit) — sección 1.2 convertida
+    en proceso de evaluación estructurado, sección 5 (cold start)
+    condensada, sección 13 reorganizada en "lo intentado y no
+    completado" vs "limitaciones técnicas", y adición del contexto del
+    503 por gratuidad de la API.
+7.  **Fix de bugs de UI** — modal de "Limpiar biblioteca" y de
+    "Eliminar" en detalle que no se mostraban (atributo `hidden` y
+    clase `modal-backdrop` no contemplados en el JS/CSS), y portada de
+    libro ahora navegable envolviendo la imagen en un `<a>`.
+
+**Convención aplicada en este repo:**
+
+-   `feat:` nueva funcionalidad visible.
+-   `fix:` corrección de bug (no de typo).
+-   `docs:` cambios solo en documentación (incluye README y `docs/`).
+-   `refactor:` cambios internos sin cambio de comportamiento.
+-   `test:` solo tests.
+
+Los commits de typo o formato de una sola línea se evitan a propósito:
+si un cambio de docs merece un commit, se acumula con otros cambios
+relacionados en el mismo commit para mantener el historial legible.
+
+### 15.2. Cómo contribuir
 
 1.  Fork el repo.
 2.  Crea una rama: `git checkout -b feature/mi-cambio`.
