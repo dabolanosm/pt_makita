@@ -693,8 +693,26 @@ input[type="submit"]:disabled {
   justify-content: center;
 }
 
-.modal.active {
+.modal.active,
+.modal-backdrop.active {
   display: flex;
+}
+
+/* When the cover image is wrapped in an <a> for navigation, make the
+   link fill the cover area so the entire image (not just the pixels)
+   becomes the click target. Keeps existing layout intact. */
+.card-cover-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+  height: 100%;
+}
+
+.card-cover-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-md);
 }
 
 .modal-content {

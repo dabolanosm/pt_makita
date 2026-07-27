@@ -128,11 +128,13 @@
         {% for book in books %}
           <article class="card book-item" data-book-id="{{ book.id }}">
             <div class="card-cover">
-              {% if book.thumbnail_url %}
-                <img src="{{ book.thumbnail_url }}" alt="Portada de {{ book.title }}" loading="lazy" decoding="async" {% if loop.first %}fetchpriority="high"{% endif %} onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22150%22/><text x=%2250%22 y=%2275%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22>Sin imagen</text></svg>'" />
-              {% else %}
-                <div class="card-cover-placeholder">📖</div>
-              {% endif %}
+              <a class="card-cover-link" href="/books/{{ book.id }}" aria-label="Ver detalle de {{ book.title }}">
+                {% if book.thumbnail_url %}
+                  <img src="{{ book.thumbnail_url }}" alt="Portada de {{ book.title }}" loading="lazy" decoding="async" {% if loop.first %}fetchpriority="high"{% endif %} onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22150%22/><text x=%2250%22 y=%2275%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22>Sin imagen</text></svg>'" />
+                {% else %}
+                  <div class="card-cover-placeholder">📖</div>
+                {% endif %}
+              </a>
               <input type="checkbox" class="book-select visually-hidden" value="{{ book.id }}" aria-label="Seleccionar libro: {{ book.title }}" />
             </div>
             <div class="card-body">

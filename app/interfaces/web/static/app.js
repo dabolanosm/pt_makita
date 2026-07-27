@@ -187,6 +187,12 @@ class ModalManager {
   static open(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+      // The modal HTML uses class="modal-backdrop" with the HTML `hidden`
+      // attribute as the default state. We need to clear BOTH for the modal
+      // to actually appear: toggle the `active` class (matched by CSS) and
+      // remove the `hidden` attribute (otherwise the browser keeps it
+      // hidden regardless of any CSS rule).
+      modal.removeAttribute('hidden');
       modal.classList.add('active');
       document.body.classList.add('modal-open');
       const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -200,6 +206,7 @@ class ModalManager {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.remove('active');
+      modal.setAttribute('hidden', '');
       document.body.classList.remove('modal-open');
     }
   }
