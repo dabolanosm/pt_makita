@@ -8,6 +8,15 @@
 
 ## Tabla de contenidos
 
+0.  [Presentación de resultados](#0-presentación-de-resultados)
+    -   [0.1. Componentes desarrollados](#01-componentes-desarrollados)
+    -   [0.2. Tecnologías utilizadas](#02-tecnologías-utilizadas)
+    -   [0.3. Decisiones técnicas principales](#03-decisiones-técnicas-principales)
+    -   [0.4. Problemas encontrados](#04-problemas-encontrados)
+    -   [0.5. Soluciones aplicadas](#05-soluciones-aplicadas)
+    -   [0.6. Funcionalidades pendientes](#06-funcionalidades-pendientes)
+    -   [0.7. Qué mejoraría con más tiempo](#07-qué-mejoraría-con-más-tiempo)
+    -   [0.8. Cómo ejecutaría la solución en un ambiente productivo](#08-cómo-ejecutaría-la-solución-en-un-ambiente-productivo)
 1.  [¿Qué es y qué problema resuelve?](#1-qué-es-y-qué-problema-resuelve)
     -   [1.1. Cobertura respecto a los niveles de la prueba técnica](#11-cobertura-respecto-a-los-niveles-de-la-prueba-técnica)
     -   [1.2. Pressbooks como componente principal — proceso de evaluación](#12-pressbooks-como-componente-principal--proceso-de-evaluación)
@@ -57,6 +66,113 @@
         -   [15.1.1. Detalle de cada commit (clasificado por tipo)](#1511-detalle-de-cada-commit-clasificado-por-tipo)
     -   [15.2. Cómo contribuir](#152-cómo-contribuir)
 16. [Licencia](#16-licencia)
+
+---
+
+## 0. Presentación de resultados
+
+Esta sección responde de forma directa a los 8 puntos de la sección
+7 del enunciado de la prueba técnica. Resume el alcance real de la
+entrega, las decisiones tomadas y el camino crítico que llevó al estado
+actual del repositorio. Está ubicada al inicio a propósito: es la
+primera pieza que un evaluador debería leer antes de revisar el
+detalle de cada nivel.
+
+### 0.1. Componentes desarrollados
+
+| #  | Componente                                                                              | Estado |
+| -- | --------------------------------------------------------------------------------------- | ------ |
+| 1  | Repositorio Git con estructura organizada, `.env.example` y `.gitignore` sin secretos   | ✅     |
+| 2  | Entorno Dockerizado (`Dockerfile` + `docker-compose.yml` con bind volume para la DB)    | ✅     |
+| 3  | Aplicación principal con API REST + UI web (sustituye a Pressbooks, ver [1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación)) | ✅     |
+| 4  | Integración con API externa autenticada (Google Books, API key por header)             | ✅     |
+| 5  | Modelo de datos + almacenamiento en SQLite con SQLAlchemy 2 + deduplicación por `google_id` | ✅  |
+| 6  | API propia documentada con OpenAPI/Swagger (`/docs` y `/redoc`)                         | ✅     |
+| 7  | Integración entre app principal, API y datos externos (end-to-end)                     | ✅     |
+| 8  | Solución publicada en Internet (Render: <https://book-library-sync.onrender.com>)       | ✅     |
+| 9  | `README.md` claro y organizado con diagramas Mermaid y troubleshooting                  | ✅     |
+
+### 0.2. Tecnologías utilizadas
+
+- **Backend**: Python 3.12 · FastAPI 0.115 · SQLAlchemy 2.0 · Pydantic 2.10 · `httpx` 0.28 · Uvicorn.
+- **Frontend**: Jinja2 (server-rendered) · JavaScript vanilla · CSS propio con variables, modo claro/oscuro y responsive.
+- **Persistencia**: SQLite (archivo `data/app.db` con SQLAlchemy como ORM).
+- **API externa**: Google Books (autenticación por API key en header).
+- **Infraestructura**: Docker · Docker Compose · `render.yaml` (Render Blueprint) · GitHub Actions (CI).
+- **Calidad**: `pytest` · `pytest-asyncio` · 3 archivos de tests cubriendo API, `BookService` y `GoogleBooksClient`.
+- **Documentación visual**: 5 diagramas Mermaid nativos en `docs/diagrams/` (arquitectura, ER, flujo de sync, secuencia UML, despliegue).
+
+### 0.3. Decisiones técnicas principales
+
+- **Sustituir Pressbooks por una API REST propia.** Justificada en [1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación) tras una evaluación técnica: Pressbooks no tiene imagen oficial en Docker Hub, su despliegue local vía Lando añade una capa más de orquestación, y mantener dos stacks (PHP + MariaDB y Python + SQLite) duplicaba la superficie de fallo para una prueba con tiempo limitado. El plan para integrarlo después sin rehacer la API está en [1.2.4](#124-cómo-se-integraría-pressbooks-después-sin-rehacer-la-api).
+- **Arquitectura en 4 capas** (`interfaces`, `application`, `infrastructure`, `domain`) con regla de dependencias estricta: cada capa solo importa de las inferiores. Permite cambiar la UI o la DB sin tocar la lógica.
+- **`httpx` con reintentos exponenciales + jitter** para tolerar los 503 intermitentes de Google Books desde IPs de cloud. Detalle en [6.3.1](#631-por-qué-el-503-también-aparece-usando-solo-la-restapi).
+- **Deduplicación por `google_id` (UNIQUE + INDEX)** en la tabla `books` para que llamadas repetidas al mismo sync sean idempotentes.
+- **SQLite en lugar de Postgres** — cero infraestructura, archivo portable, suficiente para una demo de un solo usuario. La migración a Postgres queda como mejora documentada (sección [14](#14-pendientes-y-roadmap)).
+- **Eliminar el caché en memoria de `BookService`** — bajo el wiring actual de FastAPI (`Depends(get_book_service)` por request) el caché basado en `self._query_cache` se reiniciaba en cada request, haciéndolo inútil. Se prefirió código honesto a un caché mentiroso.
+- **El detalle completo de cada decisión (incluidas las no implementadas)** está en [`docs/DECISIONS.md`](docs/DECISIONS.md).
+
+### 0.4. Problemas encontrados
+
+- **Errores 503 de Google Books** desde IPs de cloud (Render, EC2, etc.), por geolocalización fallida o rate limit geográfico. Detalle en [6.3.1](#631-por-qué-el-503-también-aparece-usando-solo-la-restapi).
+- **Pressbooks sin imagen oficial en Docker Hub** y la fricción de mantener PHP + MariaDB en paralelo al stack Python. Listado completo de fricciones en [1.2.2](#122-problemas-identificados-durante-la-evaluación).
+- **Filesystem efímero en Render free tier** — el archivo `data/app.db` se borra en cada redeploy, perdiendo los libros sincronizados.
+- **Bugs de UI** detectados después del commit inicial: modales que no aparecían por incompatibilidad entre el atributo `hidden` y la clase `modal-backdrop`, y portada de libro no clicable (fix en commits `a3ebdad` y `2170af8`).
+- **Intento fallido de despliegue de Pressbooks en `localhost:8080`** — documentado honestamente en [1.2.2](#122-problemas-identificados-durante-la-evaluación) (problema 6) en lugar de esconderlo del historial.
+- **Capa de seguridad transversal no implementada** — la app actual es una API pública sin auth, sin CSRF en forms y sin rate limit. Diseño iniciado, implementación pendiente (sección [13.1](#131-lo-que-se-intentó-pero-no-se-completó)).
+
+### 0.5. Soluciones aplicadas
+
+- **Reintentos exponenciales + jitter + `ExternalAPIError` (502)** para que los 503 de Google Books se degraden con un mensaje claro en vez de un error críptico. La UI muestra un toast informativo.
+- **Sustitución de Pressbooks por la API REST propia** con justificación técnica completa y un plan concreto de cómo se integraría Pressbooks después sin rehacer la API.
+- **Bind volume `./data:/app/data`** en `docker-compose.yml` para persistencia en local; **documentación en `docs/DEPLOY.md`** de las dos opciones para producción (Render Persistent Disk por 1 USD/mes, o Postgres externo gratuito en Neon/Supabase).
+- **Fixes incrementales de UI** (`a3ebdad` y `2170af8`) + test de las rutas web (`tests/test_web_routes.py`) para que no se regresen los modales ni el cover link.
+- **Transparencia total en el README** sobre los problemas, los intentos fallidos y las decisiones, en lugar de maquillar la cobertura real. Esto incluye la nota honesta de que no se llegó a desplegar un contenedor funcional de Pressbooks dentro del ciclo de la prueba (sección [1.2.3](#123-decisión-final)).
+- **`mermaid` nativo en GitHub** para que los 5 diagramas de arquitectura, datos, sync, secuencia y despliegue se rendericen sin herramientas externas.
+
+### 0.6. Funcionalidades pendientes
+
+Listadas en orden de impacto en [14](#14-pendientes-y-roadmap). Las más relevantes para esta entrega:
+
+- 🔴 **Capa de seguridad transversal** (API key estática para `/api/*`, CORS explícito, `slowapi` para rate limit, headers HTTP de seguridad, CSRF en formularios web). Diseño iniciado, implementación pendiente.
+- 🔴 **Persistencia real en producción** (Postgres externo en Neon/Supabase, o Render Persistent Disk de 1 USD/mes).
+- 🟡 **Paginación** en `GET /api/books` (hoy devuelve todos los registros; válido hasta ~1000 libros).
+- 🟡 **Tests E2E** con Playwright sobre la UI web (hoy hay tests unitarios + integración + un test de rutas web).
+- 🟢 **Cache real** (Redis o módulo singleton) si el tráfico lo justifica.
+- 🟢 **Tabla de auditoría** `sync_logs` con métricas por request.
+- 🟢 **CI más estricto**: `ruff` para linting, `mypy` para type-check, coverage report.
+- 🟢 **Webhook de Google Books** para sync incremental en lugar de polling.
+- 🟢 **Soporte multi-idioma** (i18n con `gettext`).
+
+### 0.7. Qué mejoraría con más tiempo
+
+- **Implementar Pressbooks con un plugin propio** (shortcode + transient cache) integrado a `GET /api/books` sin tocar el core de la API. Plan ya documentado paso a paso en [1.2.4](#124-cómo-se-integraría-pressbooks-después-sin-rehacer-la-api).
+- **Migrar a Postgres** + script de migración desde SQLite. El modelo `Book` ya está pensado para ser portable (no usa tipos SQLite-específicos).
+- **OAuth 2.0 contra Google Books** para usar las cuotas autenticadas por usuario y subir el límite de 3 req/s; implementar renovación de tokens y refresh automático.
+- **Cache real (Redis)** detrás de un patrón singleton, ahora que ya no se construye el servicio por request.
+- **Webhook de Google Books** para sincronización incremental en lugar de polling manual.
+- **Multi-usuario con auth** (JWT + roles) para abrir la app a un catálogo compartido, con paginación, búsqueda full-text y filtros por categoría/idioma.
+- **Observabilidad**: logs estructurados JSON, métricas Prometheus, Sentry para tracking de errores y uptime monitor externo.
+- **Pruebas de carga** con `locust` para validar el comportamiento bajo concurrencia y dimensionar correctamente los workers de Gunicorn.
+
+### 0.8. Cómo ejecutaría la solución en un ambiente productivo
+
+**Opción recomendada (mínimo cambio sobre el estado actual):**
+
+1. **Migrar la DB a Postgres externo** (Neon.tech o Supabase, plan gratuito): cambiar `DATABASE_URL` y eliminar el bind mount. El modelo `Book` no necesita cambios.
+2. **Render plan Starter** (7 USD/mes) con auto-deploy desde `main` (ya configurado en `render.yaml`).
+3. **Quitar `--reload` del `CMD`** y correr con **Gunicorn + Uvicorn workers** (`gunicorn -k uvicorn.workers.UvicornWorker -w 4 app.main:app`).
+4. **Variables de entorno sensibles** en el dashboard de Render (`GOOGLE_BOOKS_API_KEY` ya gestionado vía `sync: false` en `render.yaml`).
+5. **Dominio custom** + HTTPS (Render lo gestiona automáticamente con Let's Encrypt).
+6. **CI más estricto**: `ruff` para linting, `mypy` para type-check, coverage report, deploy condicional (solo si tests pasan en `main`).
+7. **Observabilidad**: logs estructurados JSON + Sentry para tracking de errores + uptime monitor externo (UptimeRobot, Better Uptime).
+8. **Rate limiting real** con `slowapi` o API Gateway delante (Cloudflare, NGINX) antes de exponer `/api/*` públicamente.
+
+**Alternativa low-cost con Docker en VPS** (Hetzner, DigitalOcean): `docker compose up -d` con `nginx` como reverse proxy + Let's Encrypt, snapshots automatizados de la DB, y backup diario del `app.db` a S3 o Backblaze B2.
+
+**Alternativa serverless** (más compleja pero con auto-scaling): empaquetar la app en una imagen de contenedor para AWS ECS Fargate, Google Cloud Run o Fly.io, con Postgres gestionado (RDS / Cloud SQL / Fly Postgres).
+
+La guía paso a paso con troubleshooting está en [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ---
 
