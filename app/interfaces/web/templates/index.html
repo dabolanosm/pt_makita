@@ -37,7 +37,7 @@
       <button type="button" class="tab" data-mode="sync" role="tab" aria-selected="false">Sync</button>
     </div>
 
-    <form id="search-mode-form" class="search-form" method="POST" action="/web/search/local" onsubmit="handleFormSubmit(this)">
+    <form id="search-mode-form" class="search-form" method="POST" action="/web/search/local" onsubmit="handleFormSubmit(this)" data-pending-submit="true">
       <input id="search-query-input" class="input" type="text" name="query" placeholder="Busca en tu biblioteca..." aria-label="Buscar en biblioteca" required />
       <button id="search-submit-button" type="submit" class="button button-primary">Buscar en mi biblioteca</button>
     </form>
@@ -54,7 +54,7 @@
       </div>
       <div class="seed-list">
         {% for label, query in search_seeds %}
-          <form class="seed-item" method="post" action="/web/sync/{{ query | urlencode }}" onsubmit="handleFormSubmit(this)">
+          <form class="seed-item" method="post" action="/web/sync/{{ query | urlencode }}" onsubmit="handleFormSubmit(this)" data-pending-submit="true">
             <button type="submit" class="button button-secondary button-sm">{{ label }}</button>
           </form>
         {% endfor %}
@@ -121,14 +121,16 @@
 
       <div class="toolbar-actions">
         <button type="button" class="button button-secondary button-sm" onclick="selectAllBooks()">Seleccionar todo</button>
-        <button type="button" class="button button-secondary button-sm" onclick="clearAllBooks()">Limpiar biblioteca</button>
+        <form class="inline-form" method="post" action="/web/library/clear" onsubmit="return confirm('¿Limpiar toda la biblioteca? Esta acción eliminará todos los libros.')">
+          <button type="submit" class="button button-secondary button-sm">Limpiar biblioteca</button>
+        </form>
       </div>
 
       <div class="cards-grid" id="books-grid">
         {% for book in books %}
           <article class="card book-item" data-book-id="{{ book.id }}">
             <div class="card-cover">
-              <a class="card-cover-link" href="/books/{{ book.id }}" aria-label="Ver detalle de {{ book.title }}">
+              <a class="card-cover-link" href="/books/{{ book.id }}" aria-label="Ver detalle de {{ book.title }}" title="Ver detalle de {{ book.title }}">
                 {% if book.thumbnail_url %}
                   <img src="{{ book.thumbnail_url }}" alt="Portada de {{ book.title }}" loading="lazy" decoding="async" {% if loop.first %}fetchpriority="high"{% endif %} onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22150%22/><text x=%2250%22 y=%2275%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22>Sin imagen</text></svg>'" />
                 {% else %}
@@ -143,7 +145,7 @@
               <p class="card-meta">{{ book.published_date or 'Fecha desconocida' }}</p>
               <div class="card-actions">
                 <button type="button" class="button button-secondary book-select-toggle" data-book-id="{{ book.id }}" aria-pressed="false" aria-label="Seleccionar {{ book.title }}">Seleccionar</button>
-                <a class="button button-secondary" href="/books/{{ book.id }}" aria-label="Ver detalle de {{ book.title }}">Detalle</a>
+                <a class="button button-secondary" href="/books/{{ book.id }}" aria-label="Ver detalle de {{ book.title }}">Ver detalle</a>
                 <form class="inline-form" method="post" action="/web/books/{{ book.id }}/delete" onsubmit="return confirm('¿Eliminar este libro?')">
                   <button type="submit" class="button button-danger" aria-label="Eliminar {{ book.title }}">Eliminar</button>
                 </form>
@@ -164,7 +166,7 @@
         <h2>No hay libros en tu biblioteca todavía</h2>
         <p>Tu estante está vacío, pero puedes cargarlo en un instante con una búsqueda rápida o una sincronización personalizada.</p>
         {% if search_seeds %}
-          <form method="post" action="/web/sync/{{ search_seeds[0][1] | urlencode }}" onsubmit="handleFormSubmit(this)">
+          <form method="post" action="/web/sync/{{ search_seeds[0][1] | urlencode }}" onsubmit="handleFormSubmit(this)" data-pending-submit="true">
             <button type="submit" class="button button-primary">Sincronizar mi primera búsqueda</button>
           </form>
         {% endif %}

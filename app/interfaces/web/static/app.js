@@ -174,7 +174,9 @@ class ToastManager {
       this.show(decodeParam(message), 'success');
     }
     if (error) {
-      this.show(decodeParam(error), 'error');
+      window.setTimeout(() => {
+        this.show(decodeParam(error), 'error');
+      }, 9000);
     }
   }
 }
@@ -236,6 +238,7 @@ class ModalManager {
 class FormManager {
   static attachLoadingState(formSelector = 'form') {
     document.querySelectorAll(formSelector).forEach(form => {
+      const shouldShowPending = form.dataset.pendingSubmit === 'true' || form.hasAttribute('data-pending-submit');
       form.addEventListener('submit', () => {
         const submitBtn = form.querySelector('button[type="submit"]');
         if (submitBtn && !submitBtn.disabled) {
@@ -244,11 +247,51 @@ class FormManager {
           submitBtn.setAttribute('data-original-text', originalText);
           submitBtn.innerHTML = `
             <span class="spinner" style="width: 0.875rem; height: 0.875rem; margin-right: 0.5rem; display: inline-block; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%;"></span>
-            Cargando...
+            ${shouldShowPending ? 'Pensando...' : 'Cargando...'}
           `;
+        }
+
+        if (shouldShowPending) {
+          this.showPendingOverlay(form);
         }
       });
     });
+  }
+
+  static showPendingOverlay(form) {
+    const overlay = document.getElementById('pendingOverlay');
+    if (!overlay) return;
+
+    overlay.removeAttribute('hidden');
+    const title = overlay.querySelector('.pending-title');
+    const subtitle = overlay.querySelector('.pending-subtitle');
+    if (title) {
+      title.textContent = 'Estamos cargando tu biblioteca...';
+    }
+    if (subtitle) {
+      subtitle.textContent = 'La respuesta puede tardar unos segundos si el servicio está ocupado.';
+    }
+
+    if (!window.__pendingOverlayTimer) {
+      window.__pendingOverlayTimer = window.setTimeout(() => {
+        if (!overlay.hasAttribute('hidden')) {
+          if (subtitle) {
+            subtitle.textContent = 'Todavía seguimos esperando la respuesta. Espera un momento más.';
+          }
+        }
+      }, 8000);
+    }
+  }
+
+  static hidePendingOverlay() {
+    const overlay = document.getElementById('pendingOverlay');
+    if (overlay) {
+      overlay.setAttribute('hidden', '');
+    }
+    if (window.__pendingOverlayTimer) {
+      window.clearTimeout(window.__pendingOverlayTimer);
+      window.__pendingOverlayTimer = null;
+    }
   }
 }
 
@@ -422,6 +465,7 @@ function initializeBookSelectionButtons() {
 document.addEventListener('DOMContentLoaded', () => {
   // Inicializar gestor de temas
   new ThemeManager();
+  FormManager.hidePendingOverlay();
 
   // Inicializar gestor de toasts
   window.toastManager = new ToastManager();

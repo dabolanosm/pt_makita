@@ -8,8 +8,8 @@
       <a href="/" class="button button-secondary">← Volver a mi biblioteca</a>
     </div>
 
-    <div class="detail-layout">
-      <div class="detail-cover">
+    <div class="detail-hero">
+      <div class="detail-cover-card">
         {% if book.thumbnail_url %}
           <img src="{{ book.thumbnail_url }}" alt="Portada de {{ book.title }}" loading="lazy" decoding="async" fetchpriority="high" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22150%22/><text x=%2250%22 y=%2275%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22>Sin imagen</text></svg>'" />
         {% else %}
@@ -17,7 +17,8 @@
         {% endif %}
       </div>
 
-      <div class="detail-info">
+      <div class="detail-info-card">
+        <span class="hero-badge detail-badge"><span class="pulse"></span>Detalle del libro</span>
         <h1>{{ book.title }}</h1>
         <p class="detail-author">{{ book.authors_text }}</p>
 
@@ -66,7 +67,9 @@
           {% if book.preview_link %}
             <a href="{{ book.preview_link }}" target="_blank" rel="noopener noreferrer" class="button button-primary" aria-label="Ver en Google Books">Ver en Google Books</a>
           {% endif %}
-          <button type="button" class="button button-danger" onclick="deleteBook()" aria-label="Eliminar este libro">Eliminar</button>
+          <form class="inline-form" method="post" action="/web/books/{{ book.id }}/delete" onsubmit="return confirm('¿Eliminar este libro de tu biblioteca?')">
+            <button type="submit" class="button button-danger" aria-label="Eliminar este libro">Eliminar</button>
+          </form>
         </div>
       </div>
     </div>

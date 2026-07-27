@@ -509,6 +509,7 @@ input[type="submit"]:disabled {
 .card-cover img,
 .card-cover-placeholder {
   width: 100%;
+  max-width: 220px;
   height: 100%;
   max-height: 240px;
   object-fit: contain;
@@ -517,18 +518,21 @@ input[type="submit"]:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 auto;
 }
 
 .card-cover img {
   max-width: 100%;
   width: auto;
   height: auto;
+  display: block;
+  margin: 0 auto;
   background-color: var(--bg-secondary);
   padding: 0.25rem;
 }
 
 .card-cover-placeholder {
-  font-size: 2.5rem;
+  font-size: 2rem;
   color: var(--text-secondary);
   background-color: rgba(255,255,255,0.35);
 }
@@ -702,7 +706,9 @@ input[type="submit"]:disabled {
    link fill the cover area so the entire image (not just the pixels)
    becomes the click target. Keeps existing layout intact. */
 .card-cover-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
   color: inherit;
   width: 100%;
@@ -736,6 +742,22 @@ input[type="submit"]:disabled {
   }
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.empty-state svg {
+  width: 88px;
+  height: 88px;
+  color: var(--accent);
+}
+
 .modal-header {
   margin-bottom: 1rem;
 }
@@ -753,6 +775,65 @@ input[type="submit"]:disabled {
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
+}
+
+/* ============================================================================
+   ESTADO DE CARGA PERSISTENTE
+   ============================================================================ */
+
+.pending-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(10, 14, 20, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.pending-overlay[hidden] {
+  display: none !important;
+}
+
+.pending-card {
+  width: min(360px, 100%);
+  padding: 1.5rem 1.75rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.pending-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  animation: thinkingPulse 1.2s ease-in-out infinite;
+}
+
+.pending-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.pending-subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+@keyframes thinkingPulse {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 /* ============================================================================
@@ -892,51 +973,73 @@ img {
    ============================================================================ */
 
 .detail-container {
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
+  padding: 0.5rem 0 2rem;
 }
 
-.detail-layout {
+.detail-hero {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: minmax(260px, 320px) 1fr;
   gap: 2rem;
+  align-items: stretch;
   margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(139, 111, 71, 0.08) 100%);
+  box-shadow: var(--shadow);
 }
 
-@media (max-width: 768px) {
-  .detail-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.detail-cover {
+.detail-cover-card {
   display: flex;
+  align-items: center;
   justify-content: center;
+  min-height: 360px;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: var(--bg-primary);
+  border: 1px solid rgba(139, 111, 71, 0.18);
 }
 
-.detail-cover img {
-  max-width: 100%;
+.detail-cover-card img {
+  width: 100%;
+  max-width: 240px;
   height: auto;
-  max-height: 400px;
+  max-height: 320px;
+  object-fit: contain;
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow);
 }
 
-.detail-info h1 {
+.detail-info-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.detail-badge {
+  align-self: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.detail-info-card h1 {
   margin-bottom: 0.5rem;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
 }
 
 .detail-nav {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .detail-author {
   font-size: var(--font-size-lg);
-  margin: 1rem 0;
+  margin: 0.4rem 0 1rem;
+  color: var(--text-secondary);
 }
 
 .detail-categories {
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
 }
 
 .detail-categories .detail-meta-label {
@@ -945,7 +1048,7 @@ img {
 }
 
 .detail-description {
-  margin-top: 3rem;
+  margin-top: 0.5rem;
 }
 
 .detail-description-box {
@@ -953,11 +1056,16 @@ img {
   background-color: var(--bg-secondary);
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
 .detail-technical {
-  margin-top: 2rem;
-  opacity: 0.8;
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--bg-secondary);
+  opacity: 0.95;
   font-size: var(--font-size-sm);
 }
 
@@ -973,8 +1081,7 @@ img {
 }
 
 .detail-placeholder {
-  width: 100%;
-  max-width: 300px;
+  width: min(100%, 240px);
   aspect-ratio: 2 / 3;
   display: flex;
   align-items: center;
@@ -987,8 +1094,8 @@ img {
 .detail-meta {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin: 1.5rem 0;
+  gap: 0.9rem;
+  margin: 1.25rem 0;
 }
 
 .detail-meta-item {
@@ -1006,7 +1113,7 @@ img {
 .detail-actions {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
   flex-wrap: wrap;
 }
 
@@ -1014,7 +1121,7 @@ img {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 }
 
 .tag {
@@ -1160,8 +1267,14 @@ img {
     width: 100%;
   }
 
-  .detail-layout {
+  .detail-hero {
+    grid-template-columns: 1fr;
+    padding: 1rem;
     gap: 1rem;
+  }
+
+  .detail-cover-card {
+    min-height: 280px;
   }
 
   .selection-toolbar {

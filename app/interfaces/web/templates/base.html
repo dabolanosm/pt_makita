@@ -23,6 +23,14 @@
     </div>
   </header>
 
+  <div id="pendingOverlay" class="pending-overlay" hidden>
+    <div class="pending-card" role="status" aria-live="polite">
+      <div class="pending-icon" aria-hidden="true">🤔</div>
+      <p class="pending-title">Estamos cargando tu biblioteca...</p>
+      <p class="pending-subtitle">La respuesta puede tardar unos segundos si el servicio está ocupado.</p>
+    </div>
+  </div>
+
   <main id="main" class="container" tabindex="-1">
     <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
     {% if message %}
