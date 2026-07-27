@@ -8,19 +8,22 @@
 
 ## Tabla de contenidos
 
-1. [¿Qué es y qué problema resuelve?](#1-qué-es-y-qué-problema-resuelve)
-2. [Arquitectura en 4 capas](#2-arquitectura-en-4-capas)
-3. [Stack tecnológico y por qué cada pieza](#3-stack-tecnológico-y-por-qué-cada-pieza)
-4. [Cómo arrancar la app desde cero](#4-cómo-arrancar-la-app-desde-cero)
-5. [Cómo funciona por dentro (cold start)](#5-cómo-funciona-por-dentro-cold-start)
-6. [Referencia de la API REST](#6-referencia-de-la-api-rest)
-7. [Referencia de la UI web](#7-referencia-de-la-ui-web)
-8. [Modelo de datos](#8-modelo-de-datos)
-9. [Tests y calidad](#9-tests-y-calidad)
+1.  [¿Qué es y qué problema resuelve?](#1-qué-es-y-qué-problema-resuelve)
+    -   [1.1. Cobertura respecto a los niveles de la prueba técnica](#11-cobertura-respecto-a-los-niveles-de-la-prueba-técnica)
+    -   [1.2. Pressbooks como componente principal — proceso de evaluación](#12-pressbooks-como-componente-principal--proceso-de-evaluación)
+    -   [1.3. Nivel 6 con esta arquitectura](#13-nivel-6-con-esta-arquitectura)
+2.  [Arquitectura en 4 capas](#2-arquitectura-en-4-capas)
+3.  [Stack tecnológico y por qué cada pieza](#3-stack-tecnológico-y-por-qué-cada-pieza)
+4.  [Cómo arrancar la app desde cero](#4-cómo-arrancar-la-app-desde-cero)
+5.  [Cómo funciona por dentro (cold start)](#5-cómo-funciona-por-dentro-cold-start)
+6.  [Referencia de la API REST](#6-referencia-de-la-api-rest)
+7.  [Referencia de la UI web](#7-referencia-de-la-ui-web)
+8.  [Modelo de datos](#8-modelo-de-datos)
+9.  [Tests y calidad](#9-tests-y-calidad)
 10. [Despliegue](#10-despliegue)
 11. [Decisiones técnicas documentadas](#11-decisiones-técnicas-documentadas)
 12. [Diagramas visuales](#12-diagramas-visuales)
-13. [Limitaciones conocidas](#13-limitaciones-conocidas)
+13. [Limitaciones conocidas y trabajo pendiente](#13-limitaciones-conocidas-y-trabajo-pendiente)
 14. [Pendientes y roadmap](#14-pendientes-y-roadmap)
 15. [Contribuir](#15-contribuir)
 16. [Licencia](#16-licencia)
@@ -29,80 +32,134 @@
 
 ## 1. ¿Qué es y qué problema resuelve?
 
-**Book Library Sync** es una aplicación web full-stack que resuelve un problema concreto:
-tener una biblioteca local de libros consultable, sin depender de una conexión constante
-a internet ni de un servicio de terceros, **pero** manteniendo la capacidad de descubrir
-nuevos títulos usando una API externa reconocida (Google Books).
+**Book Library Sync** es una aplicación web full-stack que resuelve un problema
+concreto: tener una biblioteca local de libros consultable, sin depender de una
+conexión constante a internet ni de un servicio de terceros, **pero** manteniendo
+la capacidad de descubrir nuevos títulos usando una API externa reconocida
+(Google Books).
 
 **Funcionalidades principales:**
 
-- 🔍 **Buscar** libros en Google Books por título, autor o tema.
-- 💾 **Sincronizar** resultados a una base SQLite local (con deduplicación por `google_id`).
-- 📚 **CRUD completo** sobre la biblioteca local (crear, listar, ver detalle, editar, eliminar).
-- 🗑️ **Operaciones masivas**: eliminar varios a la vez, vaciar toda la biblioteca.
-- 🌐 **API REST** documentada automáticamente (Swagger en `/docs`).
-- 🖥️ **UI web** server-rendered con Jinja2, modo claro/oscuro, responsive.
-- 🔁 **Manejo robusto de errores** con reintentos exponenciales sobre la API externa.
+-   🔍 **Buscar** libros en Google Books por título, autor o tema.
+-   💾 **Sincronizar** resultados a una base SQLite local (con deduplicación por
+    `google_id`).
+-   📚 **CRUD completo** sobre la biblioteca local (crear, listar, ver detalle,
+    editar, eliminar).
+-   🗑️ **Operaciones masivas**: eliminar varios a la vez, vaciar toda la
+    biblioteca.
+-   🌐 **API REST** documentada automáticamente (Swagger en `/docs`).
+-   🖥️ **UI web** server-rendered con Jinja2, modo claro/oscuro, responsive.
+-   🔁 **Manejo robusto de errores** con reintentos exponenciales sobre la API
+    externa.
 
-**Qué NO es:**
+**Qué NO es** (ver también [§13](#13-limitaciones-conocidas-y-trabajo-pendiente)):
 
-- No es un catálogo público ni un sistema multi-usuario.
-- No tiene autenticación (es una demo técnica de un solo usuario).
-- No usa Pressbooks ni WordPress; es una app FastAPI autocontenida.
+-   No es un catálogo público ni un sistema multi-usuario.
+-   No tiene autenticación (es una demo técnica de un solo usuario).
 
 ### 1.1. Cobertura respecto a los niveles de la prueba técnica
 
-| Nivel | Qué pide el enunciado | Estado |
-|---|---|---|
-| 1. Docker | Estructura de proyecto + entorno Dockerizado | ✅ Completo |
-| 2. Pressbooks / app principal | Pressbooks recomendado; se permite alternativa justificada | 🔁 Sustituido — ver 1.2 |
-| 3. API externa autenticada | Autenticación + manejo de errores | ✅ Completo |
-| 4. Procesamiento y almacenamiento | Modelo de datos + deduplicación | ✅ Completo |
-| 5. API propia | CRUD documentado | ✅ Completo |
-| 6. Integración entre componentes | App principal + API propia + datos externos | 🔁 Adaptado — ver 1.2 |
-| 7. Publicación | Disponible en Internet | ✅ Completo (activo en Render) |
-| 8. Documentación | README claro y organizado | ✅ Completo |
+| Nivel | Qué pide el enunciado                                  | Estado                                                    |
+| ----- | ------------------------------------------------------ | --------------------------------------------------------- |
+| 1     | Estructura de proyecto + entorno Dockerizado           | ✅ Completo                                               |
+| 2     | Pressbooks como componente principal                   | 🔁 Sustituido — proceso documentado en [§1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación) |
+| 3     | Integración con API externa autenticada                | ✅ Completo                                               |
+| 4     | Modelo de datos + almacenamiento                       | ✅ Completo                                               |
+| 5     | API propia documentada                                 | ✅ Completo                                               |
+| 6     | Integración entre componentes                          | ✅ Cubierto dentro del stack — ver [§1.3](#13-nivel-6-con-esta-arquitectura) |
+| 7     | Publicación en Internet                                | ✅ Completo (activo en Render)                            |
+| 8     | README claro y organizado                              | ✅ Completo                                               |
 
-### 1.2. Niveles 2 y 6 — Por qué no se usó Pressbooks y cómo se cubre la integración
+### 1.2. Pressbooks como componente principal — proceso de evaluación
 
-La razón principal **no es de preferencia personal, sino de compatibilidad de stack**: Pressbooks
-es un CMS construido sobre WordPress, cuyo stack es PHP + MySQL + un WordPress core completo con
-su propio sistema de plugins. Esta solución es **100% Python** de punta a punta (ver
-`requirements.txt`); no hay una sola línea de PHP en todo el repositorio. Incorporar Pressbooks no
-habría sido extender el código existente, sino levantar y mantener en paralelo un segundo
-ecosistema que no comparte lenguaje, runtime, ni base de datos con el resto de la solución (MySQL
-vs. SQLite), con ~1.5 GB de RAM y ~1 minuto de bootstrap adicionales solo para tenerlo en pie. Por
-eso la decisión se tomó en la fase de análisis, **antes de escribir código** (el primer commit del
-repositorio ya llega sin Pressbooks): dado ese desajuste de stack, el tiempo se priorizó en cubrir
-a fondo los niveles 3–8 en un stack coherente, en vez de mantener dos ecosistemas de lenguaje
-distintos para una prueba con tiempo acotado.
+El enunciado original recomienda **Pressbooks** como componente principal de la
+solución. Antes de escribir código, se hizo una evaluación técnica de su
+viabilidad dentro del tiempo disponible para la prueba. Esta sección documenta
+ese proceso: lo que se estudió, los problemas identificados, y por qué se
+sustituyó por una API REST propia.
 
-**Cómo se integraría después:** un plugin de WordPress con un shortcode que consuma
-`GET /api/books` vía HTTP — la API no cambiaría, solo se sumaría un consumidor externo más, igual
-que hoy lo consume la UI Jinja2.
+#### 1.2.1. Lo que se evaluó
 
-**Qué cambiaría en la arquitectura:** un segundo contenedor (PHP + MySQL) en
-`docker-compose.yml`, una capa de autenticación en la API (hoy no la tiene, ver sección 13) al
-dejar de ser consumida solo por la propia UI, y manejo de CORS entre ambos dominios si se
-despliegan por separado.
+Pressbooks es un fork profundo de **WordPress Multisite** con un sistema
+propio de temas y exportadores. No es un plugin que se activa sobre un
+WordPress base, ni tiene imagen oficial publicada en Docker Hub. La única
+vía soportada por la comunidad para desarrollo local es
+[Lando + Docker](https://github.com/pressbooks/local-dev-environment), que
+añade una capa más de orquestación.
 
-**Nivel 6 con esta arquitectura:** al no existir ese segundo componente, la integración ocurre
-dentro de la misma app: la UI (Jinja2) y la API REST son dos interfaces (`app/interfaces/web` y
-`app/interfaces/api`) que convergen en el mismo `BookService`, la única capa que toca tanto SQLite
-como Google Books (diagrama en
-[`docs/diagrams/01-arquitectura-general.md`](docs/diagrams/01-arquitectura-general.md)). El flujo
-completo — buscar en Google Books → guardar → mostrar en la UI o consultar vía `/api/books` —
-funciona de punta a punta y está desplegado en producción, aunque sin el segundo aplicativo que el
-enunciado usa como ejemplo de integración.
+#### 1.2.2. Problemas identificados durante la evaluación
 
-Para el detalle profundo de arquitectura consulta [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-Para el detalle del despliegue en Render consulta [`docs/DEPLOY.md`](docs/DEPLOY.md).
+| # | Problema | Detalle |
+|---|----------|---------|
+| 1 | **Sin imagen oficial en Docker Hub** | Toda la comunidad usa Lando o un compose multi-servicio (WordPress + MariaDB + MySQL). La propia guía oficial desaconseja combinar migración, containerización y upgrades en un solo paso. |
+| 2 | **Recursos no triviales** | Un contenedor funcional requiere WordPress Multisite + MariaDB: ~1.5 GB de RAM en reposo y 60–90 s de bootstrap del primer arranque. |
+| 3 | **Fricción de stack** | Mantener PHP + MySQL en paralelo al stack Python (FastAPI + SQLAlchemy + SQLite) implica dos sistemas de dependencias, dos bases de datos, dos sistemas de plugins y dos procesos de despliegue. El enunciado permite explícitamente sustituir Pressbooks cuando se justifique. |
+| 4 | **Riesgo de integración con la API externa** | La función estándar de WordPress para consumir APIs externas (`wp_remote_get`) es **síncrona y bloqueante con un timeout de 5 s por defecto**. La comunidad recomienda desacoplar las llamadas a un servicio externo cuando la integración es crítica. Hacer un shortcode de Pressbooks que sincronice con Google Books sin un manejo cuidadoso de timeouts y reintentos era un riesgo alto de páginas colgadas en producción. |
+| 5 | **Errores 503 intermitentes de la API externa** | Google Books devuelve `503 Service Unavailable` por rate limit geográfico o "Cannot determine user location" en IPs de cloud (EC2, Render, etc.). Manejar esos 503 desde un plugin PHP con caché, reintentos exponenciales y degradación elegante es una capa extra de complejidad que añadir al stack PHP. |
+
+#### 1.2.3. Decisión final
+
+Dada la combinación de tiempo limitado para la prueba, los recursos necesarios
+para levantar Pressbooks en Docker, la fricción de mantener dos stacks
+distintos, y la complejidad de hacer una integración robusta de una API
+externa desde un plugin PHP, se construyó la solución como una **API REST
+propia en Python (FastAPI) con UI Jinja2**, cumpliendo el espíritu del
+enunciado (app principal + API propia + datos externos) sin la fricción
+operativa del segundo ecosistema.
+
+> 📌 **Honestidad del proceso.** La evaluación previa identificó los
+> problemas listados arriba, pero **no se llegó a desplegar un contenedor
+> funcional de Pressbooks** dentro del ciclo de la prueba. La sustitución
+> se justificó en el análisis, no en un intento de despliegue concreto
+> que apareciera en los commits. Esto se reconoce explícitamente como una
+> limitación del proceso y se documenta en [§13](#13-limitaciones-conocidas-y-trabajo-pendiente).
+
+#### 1.2.4. Cómo se integraría Pressbooks después (sin rehacer la API)
+
+No se requeriría ningún cambio en el core de la API ni en `BookService`.
+Bastaría con:
+
+1.  Agregar Pressbooks como servicio adicional en `docker-compose.yml`
+    (WordPress + MariaDB) con su volumen propio.
+2.  Crear un plugin propio con un shortcode que consuma `GET /api/books`
+    con la API key en el header (la key nunca viajaría al HTML, solo al
+    request server-side de PHP).
+3.  Cachear la respuesta con **transients** de WordPress (5–10 min) para
+    evitar martillar la API.
+4.  Replicar visualmente las clases de `index.html` en una hoja de estilos
+    propia del plugin (no importar `styles.css` para evitar choques de
+    selectores con el admin de WordPress).
+
+La sección 11 recoge la decisión de **no** implementar esto dentro del
+alcance de la prueba por las razones ya mencionadas.
+
+### 1.3. Nivel 6 con esta arquitectura
+
+Al no existir un segundo aplicativo independiente, la integración entre
+componentes ocurre **dentro de la misma aplicación** en vez de entre dos
+aplicaciones distintas: la UI web (Jinja2) y la API REST son dos interfaces
+independientes (`app/interfaces/web` y `app/interfaces/api`) que convergen
+en el mismo `BookService`, la única capa que toca tanto SQLite como
+Google Books (ver
+[`docs/diagrams/01-arquitectura-general.md`](docs/diagrams/01-arquitectura-general.md)).
+
+Es una integración real entre **app principal ↔ API propia ↔ dato externo**:
+el flujo completo (buscar en Google Books → guardar en SQLite → mostrarlo en
+la UI o consultarlo vía `/api/books`) funciona de punta a punta y está
+desplegado en producción. La diferencia respecto al ejemplo del enunciado
+(Pressbooks) es que la "app principal" y la "API propia" comparten stack
+en vez de ser dos aplicaciones distintas.
+
+Para el detalle profundo de arquitectura consulta
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Para el detalle del
+despliegue en Render consulta [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ---
 
 ## 2. Arquitectura en 4 capas
 
-El proyecto sigue una **separación estricta de responsabilidades** en cuatro capas, donde cada una cumple un propósito específico y claramente delimitado.
+El proyecto sigue una **separación estricta de responsabilidades** en cuatro
+capas, donde cada una cumple un propósito específico y claramente delimitado.
 
 | Capa                | Propósito                 | Componentes principales                                                                                 | Responsabilidad                                                  |
 | ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -111,18 +168,23 @@ El proyecto sigue una **separación estricta de responsabilidades** en cuatro ca
 | **infrastructure/** | Infraestructura           | `HttpClient` (httpx con retry + jitter), `GoogleBooksClient`, `db.py` (engine y sessions de SQLAlchemy) | Conectar el sistema con servicios externos, red y base de datos. |
 | **domain/**         | Dominio                   | `Book` (modelo ORM), `BookCreate`, `BookUpdate`, `BookRead` (schemas Pydantic)                          | Representar la entidad principal y sus reglas de negocio.        |
 
-### Lectura rápida
+### 2.1. Lectura rápida
 
-* **interfaces**: recibe solicitudes y expone respuestas.
-* **application**: define el flujo de ejecución.
-* **infrastructure**: implementa dependencias técnicas.
-* **domain**: concentra el modelo conceptual del negocio.
+-   **interfaces**: recibe solicitudes y expone respuestas.
+-   **application**: define el flujo de ejecución.
+-   **infrastructure**: implementa dependencias técnicas.
+-   **domain**: concentra el modelo conceptual del negocio.
 
+### 2.2. Regla de dependencias
 
-**Regla de dependencias:** cada capa solo puede importar de las capas inferiores.
-`domain` no conoce FastAPI ni SQLAlchemy directo. `application` no conoce HTTP ni
-templates. `infrastructure` no conoce routers. Esto permite cambiar la UI sin tocar
-la lógica, o cambiar la DB sin tocar los casos de uso.
+Cada capa solo puede importar de las capas inferiores.
+
+-   `domain` no conoce FastAPI ni SQLAlchemy directo.
+-   `application` no conoce HTTP ni templates.
+-   `infrastructure` no conoce routers.
+
+Esto permite cambiar la UI sin tocar la lógica, o cambiar la DB sin tocar
+los casos de uso.
 
 Para el diagrama visual completo ver
 [`docs/diagrams/01-arquitectura-general.md`](docs/diagrams/01-arquitectura-general.md).
@@ -131,20 +193,20 @@ Para el diagrama visual completo ver
 
 ## 3. Stack tecnológico y por qué cada pieza
 
-| Capa | Tecnología | Por qué se eligió | Alternativa descartada |
-|---|---|---|---|
-| API | **FastAPI** | Documentación OpenAPI automática, async nativo, type hints | Django (demasiado ceremonioso para este alcance), Flask (sin OpenAPI automática) |
-| UI | **Jinja2** | Server-rendering, sin bundler ni SPA, perfecto para una demo | React/Vue (requieren npm build, overkill para una biblioteca personal) |
-| HTTP | **httpx** | Cliente async moderno, mismo API que `requests`, soporte de timeouts | `requests` (solo sync), `aiohttp` (API menos pythonica) |
-| ORM | **SQLAlchemy 2.x** | Maduro, tipado, mismo código funciona en SQLite y Postgres | Tortoise ORM (menos adopción), SQLModel (más nuevo, sin avantage real aquí) |
-| DB | **SQLite** | Cero infraestructura, archivo local, perfecto para demo | PostgreSQL (necesita servidor), MongoDB (no relacional) |
-| Validación | **Pydantic v2** | Schemas declarativos, validación automática, type hints | Marshmallow (más código), dataclasses (sin validación) |
-| Config | **pydantic-settings** | Variables de entorno tipadas, con `.env` | `os.getenv` (sin tipos), `python-decouple` (menos pythonico) |
-| Deploy | **Render.com** | Plan free, Docker nativo, HTTPS auto, CI/CD por git push | Railway (sin free tier), Fly.io (más config), Cloud Run (requiere GCP) |
+| Capa       | Tecnología            | Por qué se eligió                                                                | Alternativa descartada                                          |
+| ---------- | --------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| API        | **FastAPI**           | Documentación OpenAPI automática, async nativo, type hints                       | Django (demasiado ceremonioso), Flask (sin OpenAPI automática) |
+| UI         | **Jinja2**            | Server-rendering, sin bundler ni SPA, perfecto para una demo                     | React/Vue (requieren npm build, overkill)                       |
+| HTTP       | **httpx**             | Cliente async moderno, mismo API que `requests`, timeouts                        | `requests` (solo sync), `aiohttp` (API menos pythonica)         |
+| ORM        | **SQLAlchemy 2.x**    | Maduro, tipado, mismo código en SQLite y Postgres                                | Tortoise ORM, SQLModel                                         |
+| DB         | **SQLite**            | Cero infraestructura, archivo local, perfecto para demo                          | PostgreSQL, MongoDB                                             |
+| Validación | **Pydantic v2**       | Schemas declarativos, validación automática, type hints                          | Marshmallow, dataclasses                                        |
+| Config     | **pydantic-settings** | Variables de entorno tipadas, con `.env`                                        | `os.getenv`, `python-decouple`                                  |
+| Deploy     | **Render.com**        | Plan free, Docker nativo, HTTPS auto, CI/CD por git push                         | Railway, Fly.io, Cloud Run                                      |
 
-**Justificación detallada** de cada decisión (incluyendo la decisión de **no usar
-Pressbooks** y de **eliminar el caché en memoria** que tenía un bug) en
-[`docs/DECISIONS.md`](docs/DECISIONS.md).
+**Justificación detallada** de cada decisión (incluyendo la de **no
+implementar Pressbooks** y la de **eliminar el caché en memoria** que
+tenía un bug) en [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ---
 
@@ -152,11 +214,12 @@ Pressbooks** y de **eliminar el caché en memoria** que tenía un bug) en
 
 ### 4.1. Prerrequisitos
 
-- **Docker Desktop** instalado y corriendo (Docker Engine 24+).
-- **Git** para clonar el repositorio.
-- Una **API key de Google Books** (gratis): https://console.cloud.google.com/ →
-  crear proyecto → habilitar "Books API" → crear credencial "API key".
-  La key debe estar **restringida a "Books API"** o devolverá 403.
+-   **Docker Desktop** instalado y corriendo (Docker Engine 24+).
+-   **Git** para clonar el repositorio.
+-   Una **API key de Google Books** (gratis):
+    <https://console.cloud.google.com/> → crear proyecto → habilitar
+    "Books API" → crear credencial "API key". La key debe estar
+    **restringida a "Books API"** o devolverá 403.
 
 ### 4.2. Setup local
 
@@ -182,13 +245,13 @@ curl http://localhost:8000/health
 
 Abre en el navegador:
 
-| URL | Qué verás |
-|---|---|
-| `http://localhost:8000/` | Dashboard de la biblioteca (vacía al inicio) |
-| `http://localhost:8000/docs` | Swagger UI con todos los endpoints documentados |
-| `http://localhost:8000/redoc` | ReDoc (alternativa a Swagger) |
-| `http://localhost:8000/health` | Health check (JSON) |
-| `http://localhost:8000/health/db` | Health check de la DB |
+| URL                              | Qué verás                                            |
+| -------------------------------- | ---------------------------------------------------- |
+| `http://localhost:8000/`         | Dashboard de la biblioteca (vacía al inicio)         |
+| `http://localhost:8000/docs`     | Swagger UI con todos los endpoints documentados      |
+| `http://localhost:8000/redoc`    | ReDoc (alternativa a Swagger)                        |
+| `http://localhost:8000/health`   | Health check (JSON)                                  |
+| `http://localhost:8000/health/db` | Health check de la DB                               |
 
 ### 4.4. Sincronización inicial
 
@@ -204,81 +267,44 @@ curl -X POST http://localhost:8000/api/sync \
   -d '{"query":"python programming","max_results":5}'
 ```
 
-O usa los botones de búsqueda rápida del dashboard en `http://localhost:8000/`.
+O usa los botones de búsqueda rápida del dashboard en
+`http://localhost:8000/`.
 
 ---
 
 ## 5. Cómo funciona por dentro (cold start)
 
-Esta sección explica **qué pasa desde que ejecutas `docker compose up` hasta que la app
-responde al primer request**, con el detalle exacto de cada paso. Es importante entenderlo
-para saber por qué SQLite arranca vacío y cuándo se crean los archivos.
+Esta sección resume **qué pasa desde que ejecutas `docker compose up` hasta
+que la app responde al primer request**. El detalle paso a paso de los
+componentes intermedios se ve en los diagramas de
+[`docs/diagrams/`](docs/diagrams/README.md).
 
-### Paso 1 — Build de la imagen Docker
+### 5.1. Línea de tiempo resumida
 
-```dockerfile
-FROM python:3.12-slim
-WORKDIR /app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-```
+1.  **Build de la imagen** → `python:3.12-slim` + `requirements.txt` +
+    código fuente copiado a `/app`. `CMD` ejecuta `uvicorn` con `--reload`.
+2.  **Inicio del contenedor** → `docker compose up` monta `./:/app` y
+    `./data:/app/data` como bind volumes y carga el `.env` con
+    `GOOGLE_BOOKS_API_KEY`.
+3.  **`create_app()`** → instancia `FastAPI`, monta `/static`, registra 4
+    exception handlers, registra el middleware de logging, e incluye los
+    routers (`health`, `books`, `sync`, `web`).
+4.  **Lifespan startup** → ejecuta `init_db()`, que crea `data/app.db` y la
+    tabla `books` con sus 14 columnas. **No inserta filas**: la base queda
+    completamente vacía.
+5.  **uvicorn queda escuchando** en `0.0.0.0:8000`.
+6.  **Primer request** → un `GET /` recorre el middleware → resuelve
+    `Depends(get_db)` y `Depends(get_book_service)` → `BookService.list_books()`
+    devuelve `[]` (vacío la primera vez) → `index.html` se renderiza con
+    el empty state.
 
-Docker construye una imagen basada en `python:3.12-slim`, instala las dependencias de
-`requirements.txt` y copia el código fuente a `/app`. El `CMD` define que el proceso
-principal será `uvicorn` con auto-reload (útil en desarrollo).
+> ⚠️ **SQLite arranca vacío.** Solo con el schema. La única forma de
+> llenarlo es llamar a `POST /api/sync` (sincronización desde Google Books)
+> o a `POST /api/books` (creación manual). En Render free tier, el archivo
+> es **efímero** y se borra en cada redeploy. Ver
+> [`docs/DEPLOY.md` §4](docs/DEPLOY.md) para más detalle.
 
-### Paso 2 — Inicio del contenedor
-
-`docker compose up` arranca el servicio `api` mapeando:
-- `./:/app` → bind volume con el código (cambios en caliente con `--reload`).
-- `./data:/app/data` → bind volume con la base de datos (persiste en el host).
-- `env_file: .env` → carga `GOOGLE_BOOKS_API_KEY` y demás configuración.
-
-### Paso 3 — uvicorn carga la app
-
-`uvicorn` importa `app/main.py` y ejecuta la función `create_app()`. Esta función:
-
-1. Crea la instancia de `FastAPI(title="Book Library Sync", version="0.1.0", lifespan=...)`.
-2. Monta `/static` para servir `app.js` y `styles.css`.
-3. Registra 4 exception handlers (`ExternalAPIError`, `NotFoundError`, `ValidationError`,
-   `RequestValidationError`) que traducen excepciones a respuestas JSON consistentes.
-4. Registra un middleware HTTP que loggea método, path, status y duración de cada request.
-5. Incluye los routers: `health_router`, `books_router` (con prefijo `/api`),
-   `sync_router` (con prefijo `/api`), `web_router` (sin prefijo).
-
-### Paso 4 — Lifespan startup: se crea la base de datos
-
-Antes de aceptar el primer request, FastAPI ejecuta el hook de `lifespan`:
-
-```python
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    settings = get_settings()
-    logging.basicConfig(...)
-    init_db()        # ← aquí
-    yield
-```
-
-`init_db()` ejecuta `Base.metadata.create_all(engine)`, lo cual:
-- **Crea el archivo `data/app.db`** si no existe.
-- **Crea la tabla `books`** con sus 14 columnas, PK, índices y constraints.
-- **NO inserta ninguna fila.** La base queda completamente vacía.
-
-> ⚠️ **SQLite arranca vacío.** Solo con el schema. La única forma de llenarlo es
-> llamar a `POST /api/sync` (sincronización desde Google Books) o a `POST /api/books`
-> (creación manual). En Render free tier, el archivo es **efímero** y se borra en
-> cada redeploy. Ver [`docs/DEPLOY.md` §4](docs/DEPLOY.md) para más detalle.
-
-### Paso 5 — uvicorn queda escuchando
-
-La app queda escuchando en `0.0.0.0:8000`. Ya está lista para recibir requests.
-
-### Paso 6 — Primer request: el camino completo
-
-Tomemos como ejemplo un `GET /` (abrir el dashboard):
+### 5.2. Diagrama de secuencia del primer `GET /`
 
 ```mermaid
 sequenceDiagram
@@ -286,70 +312,58 @@ sequenceDiagram
     actor Browser
     participant MW as Middleware (log_requests)
     participant Router as FastAPI router
-    participant GetDB as get_db
-    participant GetSvc as get_book_service
     participant Home as routes.home
+    participant Svc as BookService
+    participant DB as SQLite (data/app.db)
     participant Tpl as Jinja2
 
-    Browser->>MW: GET / HTTP/1.1<br/>Host: localhost:8000
-    MW->>MW: log "Request start GET /"
+    Browser->>MW: GET / HTTP/1.1
     MW->>Router: continúa la petición
-
-    Router->>Router: Resuelve ruta "/" → routes.home()<br/>Resuelve Depends: get_db() y get_book_service()
-
-    Router->>GetDB: get_db()
-    GetDB->>GetDB: Abre sesión SQLAlchemy: SessionLocal()
-    GetDB-->>Router: yield session
-
-    Router->>GetSvc: get_book_service()
-    GetSvc->>GetSvc: settings = get_settings() ← lee .env
-    GetSvc->>GetSvc: client = GoogleBooksClient(api_key) ← crea cliente HTTP
-    GetSvc->>GetSvc: service = BookService(db, client) ← instancia del servicio
-    GetSvc-->>Router: return service
-
     Router->>Home: routes.home(service)
-    Home->>Home: books = service.list_books() ← SELECT * FROM books
-    Home->>Home: → [] (vacío la primera vez)
-    Home->>Tpl: templates.TemplateResponse("index.html", {...})
-    Tpl->>Tpl: Renderiza base.html + index.html
-    Tpl->>Tpl: books = [] → muestra empty state
-    Tpl-->>Home: rendered
-
+    Home->>Svc: service.list_books()
+    Svc->>DB: SELECT * FROM books
+    DB-->>Svc: [] (vacío la primera vez)
+    Svc-->>Home: []
+    Home->>Tpl: TemplateResponse("index.html", {...})
+    Tpl-->>Home: rendered (empty state)
     Home-->>MW: response
-    MW->>MW: log "Request end GET / status=200 duration_ms=X"
-    MW-->>Browser: Recibe HTML con la página vacía
+    MW-->>Browser: HTML con la página vacía
 ```
 
-**Observación importante:** `BookService` se crea **por cada request**. Esto significa
-que cualquier caché basado en atributos de instancia (como tenía originalmente) sería
-inútil. Esa es la razón por la que se eliminó el caché. Ver
-[`docs/DECISIONS.md`](docs/DECISIONS.md) para el detalle.
+**Observación importante:** `BookService` se crea **por cada request** (vía
+`Depends(get_book_service)`), por eso cualquier caché basado en atributos
+de instancia sería inútil. Esa es la razón por la que se eliminó el caché.
+Ver [`docs/DECISIONS.md`](docs/DECISIONS.md) para el detalle.
+
+Para el detalle temporal completo del sync (que es donde se ve el retry,
+la dedup y el manejo de errores), ver
+[`docs/diagrams/04-secuencia-sync.md`](docs/diagrams/04-secuencia-sync.md).
 
 ---
 
 ## 6. Referencia de la API REST
 
-Todos los endpoints están bajo `/api/*` excepto los health checks. La documentación
-interactiva (Swagger UI con try-it-out) está disponible en **`/docs`**, y la
-especificación OpenAPI en JSON en **`/openapi.json`**.
+Todos los endpoints están bajo `/api/*` excepto los health checks. La
+documentación interactiva (Swagger UI con try-it-out) está disponible en
+**`/docs`**, y la especificación OpenAPI en JSON en **`/openapi.json`**.
 
 ### 6.1. Health checks
 
-| Método | Ruta | Descripción | Respuestas |
-|---|---|---|---|
-| `GET` | `/health` | Verifica que la app está viva **y** que la API key de Google está configurada | `200 {"status":"ok"}` · `500` si falta la key |
-| `GET` | `/health/db` | Ejecuta `SELECT 1` para confirmar la conexión a SQLite | `200 {"status":"ok","database":"connected"}` · `500` si DB caída |
+| Método | Ruta           | Descripción                                                                          | Respuestas                                                    |
+| ------ | -------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `GET`  | `/health`      | Verifica que la app está viva **y** que la API key de Google está configurada        | `200 {"status":"ok"}` · `500` si falta la key                 |
+| `GET`  | `/health/db`   | Ejecuta `SELECT 1` para confirmar la conexión a SQLite                              | `200 {"status":"ok","database":"connected"}` · `500` si DB caída |
 
 ### 6.2. CRUD de libros
 
-| Método | Ruta | Descripción | Códigos |
-|---|---|---|---|
-| `GET` | `/api/books` | Lista todos los libros guardados (sin paginación, los devuelve todos) | `200` |
-| `GET` | `/api/books/{id}` | Devuelve un libro específico por su ID | `200` · `404` si no existe |
-| `POST` | `/api/books` | Crea un libro manualmente (sin pasar por Google Books) | `201` + BookRead · `422` si payload inválido |
-| `PUT` | `/api/books/{id}` | Actualiza campos parciales (PATCH-like; solo los campos enviados) | `200` · `404` · `422` |
-| `DELETE` | `/api/books/{id}` | Elimina un libro específico | `204` (sin body) · `404` |
-| `DELETE` | `/api/books` | Elimina TODOS los libros (devuelve `{deleted: N}`) | `200` |
+| Método   | Ruta               | Descripción                                                                 | Códigos                                  |
+| -------- | ------------------ | --------------------------------------------------------------------------- | ---------------------------------------- |
+| `GET`    | `/api/books`       | Lista todos los libros guardados (sin paginación, los devuelve todos)       | `200`                                    |
+| `GET`    | `/api/books/{id}`  | Devuelve un libro específico por su ID                                       | `200` · `404` si no existe               |
+| `POST`   | `/api/books`       | Crea un libro manualmente (sin pasar por Google Books)                      | `201` + `BookRead` · `422` si payload inválido |
+| `PUT`    | `/api/books/{id}`  | Actualiza campos parciales (PATCH-like; solo los campos enviados)           | `200` · `404` · `422`                    |
+| `DELETE` | `/api/books/{id}`  | Elimina un libro específico                                                 | `204` (sin body) · `404`                 |
+| `DELETE` | `/api/books`       | Elimina TODOS los libros (devuelve `{deleted: N}`)                            | `200`                                    |
 
 **Ejemplo de payload para `POST /api/books`:**
 
@@ -370,12 +384,17 @@ especificación OpenAPI en JSON en **`/openapi.json`**.
 
 ### 6.3. Sincronización con Google Books
 
-| Método | Ruta | Descripción | Códigos |
-|---|---|---|---|
-| `POST` | `/api/sync` | Sincroniza desde Google Books con una query arbitraria | `200` · `422` si `max_results > 10` · `502` si Google falla |
-| `POST` | `/api/sync/seed?confirm=true` | Sincroniza las 6 búsquedas semilla (python, sci-fi, colombia, etc.) | `200` · `422` sin `confirm=true` · `502` si alguna falla |
+| Método | Ruta                              | Descripción                                                              | Códigos                                                    |
+| ------ | --------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `POST` | `/api/sync`                       | Sincroniza desde Google Books con una query arbitraria                   | `200` · `422` si `max_results > 10` · `502` si Google falla |
+| `POST` | `/api/sync/seed?confirm=true`     | Sincroniza las 6 búsquedas semilla (python, sci-fi, colombia, etc.)     | `200` · `422` sin `confirm=true` · `502` si alguna falla   |
 
-> Nota: Google Books puede devolver errores 503 o 5xx por saturación o mantenimiento temporal de su servicio. La app reintenta de forma exponencial y, si el fallo persiste, termina respondiendo con `502` como `ExternalAPIError`.
+> **Nota sobre errores 503.** Google Books puede devolver errores `503`
+> o `5xx` por saturación, mantenimiento temporal, o por no poder
+> geolocalizar la IP de origen (común en entornos cloud). La app
+> reintenta con backoff exponencial y jitter, y si el fallo persiste
+> termina respondiendo con `502` como `ExternalAPIError`. Ver
+> [`docs/DEPLOY.md` §7](docs/DEPLOY.md) para troubleshooting.
 
 **Ejemplo para `POST /api/sync`:**
 
@@ -394,14 +413,16 @@ curl -X POST http://localhost:8000/api/sync \
   -d '{"query":"python programming","max_results":5}'
 ```
 
-**Qué hace internamente** (ver [`docs/diagrams/03-flujo-sincronizacion.md`](docs/diagrams/03-flujo-sincronizacion.md)):
+**Qué hace internamente** (ver
+[`docs/diagrams/03-flujo-sincronizacion.md`](docs/diagrams/03-flujo-sincronizacion.md)):
 
-1. Valida `max_results ≤ 10` (Pydantic + verificación interna).
-2. Llama a `GoogleBooksClient.search(query, max_results)`.
-3. Aplica dedup en memoria (set de `google_id`).
-4. Para cada item: `SELECT WHERE google_id = ?` → INSERT si nuevo, UPDATE si existe.
-5. `db.commit()` al final (atómico; rollback si algo falla).
-6. Loggea métricas: `query · results · new · updated · elapsed_ms`.
+1.  Valida `max_results ≤ 10` (Pydantic + verificación interna).
+2.  Llama a `GoogleBooksClient.search(query, max_results)`.
+3.  Aplica dedup en memoria (set de `google_id`).
+4.  Para cada item: `SELECT WHERE google_id = ?` → INSERT si nuevo,
+    UPDATE si existe.
+5.  `db.commit()` al final (atómico; rollback si algo falla).
+6.  Loggea métricas: `query · results · new · updated · elapsed_ms`.
 
 ### 6.4. Sistema de errores
 
@@ -416,44 +437,48 @@ Todas las respuestas de error siguen el mismo formato JSON:
 
 Excepciones custom definidas en `app/errors.py`:
 
-| Excepción | status_code por defecto | Cuándo se lanza |
-|---|---|---|
-| `ExternalAPIError` | 502 | Fallo en llamada a Google Books (red, 4xx, 5xx, agotar reintentos) |
-| `NotFoundError` | 404 | Recurso no encontrado (libro, etc.) |
-| `ValidationError` | 422 | Error de validación de negocio (ej. sync/seed sin `confirm=true`) |
+| Excepción            | `status_code` por defecto | Cuándo se lanza                                                                  |
+| -------------------- | ------------------------- | -------------------------------------------------------------------------------- |
+| `ExternalAPIError`   | `502`                     | Fallo en llamada a Google Books (red, 4xx, 5xx, agotar reintentos)              |
+| `NotFoundError`      | `404`                     | Recurso no encontrado (libro, etc.)                                              |
+| `ValidationError`    | `422`                     | Error de validación de negocio (ej. `sync/seed` sin `confirm=true`)             |
 
 ---
 
 ## 7. Referencia de la UI web
 
-La UI está implementada con **Jinja2 templates** servidos desde `app/interfaces/web/`.
-Usa JavaScript vanilla (sin frameworks) para interactividad local (toasts, modales,
-tema, multi-select).
+La UI está implementada con **Jinja2 templates** servidos desde
+`app/interfaces/web/`. Usa JavaScript vanilla (sin frameworks) para
+interactividad local (toasts, modales, tema, multi-select).
 
 ### 7.1. Rutas web
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/` | Dashboard principal: biblioteca + búsquedas + seeds + toasts |
-| `GET` | `/books/{id}` | Página de detalle de un libro |
-| `POST` | `/web/sync` | Sincroniza con una query arbitraria (envía `query` como form field) |
-| `POST` | `/web/sync/{query}` | Atajo desde las búsquedas semilla (query en la URL) |
-| `POST` | `/web/search/local` | Busca en la biblioteca local (título, autor o categoría) |
-| `POST` | `/web/search/google` | Busca en Google Books sin guardar |
-| `POST` | `/web/books/add` | Agrega un libro por `google_id` (form field) |
-| `POST` | `/web/books/{id}/delete` | Elimina un libro desde la card |
-| `POST` | `/web/books/delete-selected` | Elimina varios libros (envía `selected_ids` como form field array) |
-| `POST` | `/web/library/clear` | Vacía toda la biblioteca (requiere confirmación) |
+| Método | Ruta                                | Descripción                                                              |
+| ------ | ----------------------------------- | ------------------------------------------------------------------------ |
+| `GET`  | `/`                                 | Dashboard principal: biblioteca + búsquedas + seeds + toasts            |
+| `GET`  | `/books/{id}`                       | Página de detalle de un libro                                            |
+| `POST` | `/web/sync`                         | Sincroniza con una query arbitraria (envía `query` como form field)      |
+| `POST` | `/web/sync/{query}`                 | Atajo desde las búsquedas semilla (query en la URL)                      |
+| `POST` | `/web/search/local`                 | Busca en la biblioteca local (título, autor o categoría)                |
+| `POST` | `/web/search/google`                | Busca en Google Books sin guardar                                        |
+| `POST` | `/web/books/add`                    | Agrega un libro por `google_id` (form field)                             |
+| `POST` | `/web/books/{id}/delete`            | Elimina un libro desde la card o desde la página de detalle             |
+| `POST` | `/web/books/delete-selected`        | Elimina varios libros (envía `selected_ids` como form field array)        |
+| `POST` | `/web/library/clear`                | Vacía toda la biblioteca (requiere confirmación)                         |
 
 ### 7.2. Características de la UI
 
-- **Modo claro/oscuro** persistente en `localStorage`, respeta `prefers-color-scheme`.
-- **Multi-select** de libros con toolbar flotante que aparece al seleccionar.
-- **Toasts** con auto-dismiss (3.5s) y barra de progreso visual.
-- **Modales** de confirmación (eliminar libro, limpiar biblioteca) con cierre por backdrop o ESC.
-- **Loading states** en todos los forms: el botón se deshabilita y muestra un spinner.
-- **Empty state** ilustrado cuando la biblioteca está vacía.
-- **Responsive** mobile-first con breakpoints en 640/768/1024/1280px.
+-   **Modo claro/oscuro** persistente en `localStorage`, respeta
+    `prefers-color-scheme`.
+-   **Multi-select** de libros con toolbar flotante que aparece al
+    seleccionar.
+-   **Toasts** con auto-dismiss (3.5 s) y barra de progreso visual.
+-   **Modales** de confirmación (eliminar libro, limpiar biblioteca) con
+    cierre por backdrop o ESC.
+-   **Loading states** en todos los forms: el botón se deshabilita y
+    muestra un spinner.
+-   **Empty state** ilustrado cuando la biblioteca está vacía.
+-   **Responsive** mobile-first con breakpoints en 640/768/1024/1280 px.
 
 ---
 
@@ -482,12 +507,15 @@ class Book(Base):
 
 **Puntos clave:**
 
-- `google_id` es la **clave de idempotencia**: UNIQUE + INDEX. Dos llamadas a
-  `sync_from_query("python")` no crean duplicados; la segunda actualiza.
-- `authors` y `categories` se guardan como **String con JSON serializado** (trade-off
-  documentado en DECISIONS: portable pero no queryable como JSON nativo).
-- `created_at` y `updated_at` se gestionan automáticamente vía SQLAlchemy.
-- No hay tabla de auditoría ni de logs de sync (mejora futura).
+-   `google_id` es la **clave de idempotencia**: UNIQUE + INDEX. Dos
+    llamadas a `sync_from_query("python")` no crean duplicados; la
+    segunda actualiza.
+-   `authors` y `categories` se guardan como **String con JSON serializado**
+    (trade-off documentado en `DECISIONS`: portable pero no queryable como
+    JSON nativo).
+-   `created_at` y `updated_at` se gestionan automáticamente vía
+    SQLAlchemy.
+-   No hay tabla de auditoría ni de logs de sync (mejora futura).
 
 Para el diagrama ER completo ver
 [`docs/diagrams/02-modelo-datos.md`](docs/diagrams/02-modelo-datos.md).
@@ -502,7 +530,7 @@ Para el diagrama ER completo ver
 # Local con Docker
 docker compose run --rm api pytest
 
-# Local sin Docker (requiere Python 3.12 + pip install -r requirements.txt + pip install pytest pytest-asyncio)
+# Local sin Docker (requiere Python 3.12 + pip install -r requirements.txt)
 pytest -v
 ```
 
@@ -510,17 +538,18 @@ pytest -v
 
 Hay 3 archivos de tests cubriendo los flujos principales:
 
-| Archivo | Cubre |
-|---|---|
-| `tests/test_api.py` | Endpoints REST (`/api/books` CRUD) con cliente de tests y DB en memoria |
-| `tests/test_book_service.py` | Lógica de `BookService`: CRUD + sync + dedup + reintentos |
-| `tests/test_books_client.py` | `GoogleBooksClient.search()` con `httpx.Response` mockeado |
+| Archivo                          | Cubre                                                                                              |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `tests/test_api.py`              | Endpoints REST (`/api/books` CRUD) con cliente de tests y DB en memoria                            |
+| `tests/test_book_service.py`     | Lógica de `BookService`: CRUD + sync + dedup + reintentos                                         |
+| `tests/test_books_client.py`     | `GoogleBooksClient.search()` con `httpx.Response` mockeado                                         |
 
 ### 9.3. CI/CD
 
-Cada `git push` a `main` dispara **GitHub Actions** (`.github/workflows/test.yml`)
-que ejecuta la suite completa en Python 3.12. El badge de estado aparecerá en la
-página del repo cuando se active GitHub Actions.
+Cada `git push` a `main` dispara **GitHub Actions**
+(`.github/workflows/test.yml`) que ejecuta la suite completa en Python
+3.12. El badge de estado aparecerá en la página del repo cuando se
+active GitHub Actions.
 
 Para ejecutarlo localmente antes de pushear:
 
@@ -538,95 +567,136 @@ GOOGLE_BOOKS_API_KEY=test-key pytest -q
 docker compose up --build -d
 ```
 
-- El servicio `api` se construye desde el `Dockerfile`.
-- El código se monta como bind volume (cambios en caliente).
-- `data/app.db` se monta en `./data` (persiste en el host).
+-   El servicio `api` se construye desde el `Dockerfile`.
+-   El código se monta como bind volume (cambios en caliente).
+-   `data/app.db` se monta en `./data` (persiste en el host).
 
 ### 10.2. Producción en Render.com
 
-La app está desplegada en **https://book-library-sync.onrender.com** usando la
-configuración de `render.yaml` (Render Blueprint).
+La app está desplegada en
+**https://book-library-sync.onrender.com** usando la configuración de
+`render.yaml` (Render Blueprint).
 
 **Por qué Render:**
 
-- Plan gratuito funcional.
-- Lee el `Dockerfile` directamente, sin adaptadores.
-- HTTPS automático con certificado válido.
-- Auto-deploy desde GitHub en cada `push` a `main`.
+-   Plan gratuito funcional.
+-   Lee el `Dockerfile` directamente, sin adaptadores.
+-   HTTPS automático con certificado válido.
+-   Auto-deploy desde GitHub en cada `push` a `main`.
 
 **Limitaciones del plan gratuito** (importantes):
 
-- **Cold start**: la app "duerme" tras 15 min sin tráfico. El siguiente request
-  tarda 30-50 s extra mientras arranca.
-- **Filesystem efímero**: `data/app.db` se **borra** en cada redeploy. Los libros
-  sincronizados se pierden.
-- Solo dominio `*.onrender.com` (no se puede custom domain en plan free).
+-   **Cold start**: la app "duerme" tras 15 min sin tráfico. El siguiente
+    request tarda 30–50 s extra mientras arranca.
+-   **Filesystem efímero**: `data/app.db` se **borra** en cada redeploy.
+    Los libros sincronizados se pierden.
+-   Solo dominio `*.onrender.com` (no se puede custom domain en plan free).
+-   **Errores 503 de Google Books desde Render** son relativamente
+    frecuentes por la geolocalización de la IP. La app los maneja con
+    reintentos; ver [§6.3](#63-sincronización-con-google-books).
 
-**Soluciones para persistencia** (ver [`docs/DEPLOY.md` §5](docs/DEPLOY.md)):
+**Soluciones para persistencia** (ver
+[`docs/DEPLOY.md` §5](docs/DEPLOY.md)):
 
-- **Opción A**: Render Persistent Disk (1 USD/mes, requiere plan starter).
-- **Opción B**: PostgreSQL externo gratuito (Neon.tech o Supabase) + cambiar `DATABASE_URL`.
+-   **Opción A**: Render Persistent Disk (1 USD/mes, requiere plan
+    starter).
+-   **Opción B**: PostgreSQL externo gratuito (Neon.tech o Supabase) +
+    cambiar `DATABASE_URL`.
 
-**Para hacer tu propio deploy** ver [`docs/DEPLOY.md`](docs/DEPLOY.md) — guía paso
-a paso con troubleshooting completo.
+**Para hacer tu propio deploy** ver
+[`docs/DEPLOY.md`](docs/DEPLOY.md) — guía paso a paso con troubleshooting
+completo.
 
 ---
 
 ## 11. Decisiones técnicas documentadas
 
-Las decisiones de diseño (incluyendo las que NO se implementaron y por qué) están
-documentadas en [`docs/DECISIONS.md`](docs/DECISIONS.md). Algunas especialmente
-importantes:
+Las decisiones de diseño (incluyendo las que **no** se implementaron y por
+qué) están documentadas en [`docs/DECISIONS.md`](docs/DECISIONS.md). Las
+más relevantes para esta entrega:
 
-- **Por qué FastAPI y no Django/Flask** → liviano, OpenAPI auto, async nativo.
-- **Por qué SQLite y no Postgres** → cero infra, perfecto para demo local.
-- **Por qué Jinja2 y no React/Vue** → sin bundler, sin npm, foco en backend.
-- **Por qué NO se usó Pressbooks** → PHP+MySQL añade 1.5 GB RAM y ~1 min de bootstrap
-  que no aportan al núcleo de la evaluación. La integración posterior sería vía plugin
-  WP con un shortcode que consuma `/api/books`.
-- **Por qué se eliminó el caché de `BookService`** → con el wiring actual de FastAPI
-  (`Depends(get_book_service)` por request), el caché basado en `self._query_cache`
-  se reiniciaba en cada request, haciendo inútil el TTL de 60 s. Se prefirió eliminar
-  el código muerto a tener un caché mentiroso.
-- **Por qué se diseñó la UI con un sistema visual propio** → mantener el control
-  total sin dependencias de CSS/JS externos. Ver sección de autocrítica en DECISIONS.
+-   **Por qué FastAPI y no Django/Flask** → liviano, OpenAPI auto, async
+    nativo.
+-   **Por qué SQLite y no Postgres** → cero infra, perfecto para demo
+    local.
+-   **Por qué Jinja2 y no React/Vue** → sin bundler, sin npm, foco en
+    backend.
+-   **Por qué se sustituyó Pressbooks** → combinación de tiempo limitado,
+    recursos necesarios para Docker, fricción de stack Python vs PHP, y
+    riesgo de `wp_remote_get` bloqueante en integraciones críticas.
+    Proceso completo en [§1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación).
+-   **Por qué se eliminó el caché de `BookService`** → con el wiring
+    actual de FastAPI (`Depends(get_book_service)` por request), el caché
+    basado en `self._query_cache` se reiniciaba en cada request, haciendo
+    inútil el TTL de 60 s. Se prefirió eliminar el código muerto a tener
+    un caché mentiroso.
+-   **Por qué se diseñó la UI con un sistema visual propio** → mantener
+    el control total sin dependencias de CSS/JS externos. Ver sección
+    de autocrítica en `DECISIONS`.
 
 ---
 
 ## 12. Diagramas visuales
 
-Toda la documentación visual está en [`docs/diagrams/`](docs/diagrams/README.md)
-escrita en Mermaid (se renderiza nativa en GitHub):
+Toda la documentación visual está en
+[`docs/diagrams/`](docs/diagrams/README.md) escrita en Mermaid (se
+renderiza nativa en GitHub):
 
-| # | Diagrama | Qué muestra | Niveles cubiertos |
-|---|---|---|---|
-| 1 | [Arquitectura general](docs/diagrams/01-arquitectura-general.md) | Las 4 capas + browser + Google Books + SQLite | 1 · 2 · 5 · 6 |
-| 2 | [Modelo de datos (ER)](docs/diagrams/02-modelo-datos.md) | Tabla `books` con sus 14 columnas y constraints | 4 |
-| 3 | [Flujo de sincronización](docs/diagrams/03-flujo-sincronizacion.md) | Flujograma del `POST /api/sync` con reintentos, dedup, errores | 3 · 4 · 6 |
-| 4 | [Secuencia UML del sync](docs/diagrams/04-secuencia-sync.md) | Orden temporal de llamadas + variantes (`/sync/seed`, `/web/sync`) | 3 · 6 |
-| 5 | [Despliegue](docs/diagrams/05-despliegue.md) | Local dev vs Render free tier vs topología futura con Postgres | 1 · 7 |
+| # | Diagrama                                                                  | Qué muestra                                                                  | Niveles cubiertos |
+| - | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------- |
+| 1 | [Arquitectura general](docs/diagrams/01-arquitectura-general.md)          | Las 4 capas + browser + Google Books + SQLite                                | 1 · 2 · 5 · 6     |
+| 2 | [Modelo de datos (ER)](docs/diagrams/02-modelo-datos.md)                  | Tabla `books` con sus 14 columnas y constraints                              | 4                 |
+| 3 | [Flujo de sincronización](docs/diagrams/03-flujo-sincronizacion.md)      | Flujograma del `POST /api/sync` con reintentos, dedup, errores               | 3 · 4 · 6         |
+| 4 | [Secuencia UML del sync](docs/diagrams/04-secuencia-sync.md)              | Orden temporal de llamadas + variantes (`/sync/seed`, `/web/sync`)            | 3 · 6             |
+| 5 | [Despliegue](docs/diagrams/05-despliegue.md)                              | Local dev vs Render free tier vs topología futura con Postgres               | 1 · 7             |
 
 **Recomendación de lectura:**
 
-- ¿Primera vez? → empieza por el 1.
-- ¿Solo te importa la DB? → salta al 2.
-- ¿Te importa la lógica de sync? → lee el 3 (flujo) **y** el 4 (orden temporal). Son complementarios.
-- ¿Te importa el deploy? → ve directo al 5.
+-   ¿Primera vez? → empieza por el 1.
+-   ¿Solo te importa la DB? → salta al 2.
+-   ¿Te importa la lógica de sync? → lee el 3 (flujo) **y** el 4 (orden
+    temporal). Son complementarios.
+-   ¿Te importa el deploy? → ve directo al 5.
 
 ---
 
-## 13. Limitaciones conocidas
+## 13. Limitaciones conocidas y trabajo pendiente
 
-- **Sin paginación en `GET /api/books`**: devuelve todos los libros. Para < 1000 libros
-  no es problema; para más, agregar `?skip=N&limit=M` (trivial).
-- **Sin autenticación**: la API es pública. En producción real agregar API key o JWT.
-- **Sin protección CSRF completa**: los forms web confían en SameSite cookies del browser.
-- **SQLite efímero en Render free tier**: ver §10.2.
-- **`max_results` limitado a 10** por Google Books en la implementación actual.
-  Es un limit hard en Pydantic + verificación interna.
-- **Sin tests E2E**: solo unitarios e integración. Faltan tests con Playwright/Selenium.
-- **Sin rate limiting**: un cliente puede agotar la cuota de Google Books.
-- **`authors` y `categories` como String JSON**: no queryable como JSON nativo (trade-off).
+Esta sección enumera lo que **no se implementó** y por qué, junto con el
+impacto real que tiene en la demo. Lo que sí se hizo pero podría ser
+mejor está en [§14](#14-pendientes-y-roadmap).
+
+### 13.1. Lo que se intentó pero no se completó
+
+-   **Pressbooks como componente principal.** La evaluación técnica
+    identificó los problemas listados en [§1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación),
+    pero no se llegó a desplegar un contenedor funcional dentro del
+    ciclo de la prueba. La sustitución por la API REST propia se justificó
+    en la fase de análisis, no en un intento de despliegue concreto.
+-   **Medidas de seguridad adicionales.** Se diseñó e inició la
+    implementación de una capa de seguridad transversal (API key para
+    `/api/*`, CORS explícito, rate limiting, headers de seguridad HTTP y
+    CSRF para los formularios web), pero la falta de tiempo dentro del
+    ciclo de la prueba hizo que quedara fuera de esta entrega. El
+    estado actual es: **API pública sin auth, sin CSRF en forms, sin
+    rate limit**. Esto es válido solo porque la app es una demo técnica
+    de un solo usuario (ver §1); en cualquier uso real hay que sumar
+    esa capa antes de exponer la URL.
+
+### 13.2. Limitaciones técnicas que se mantienen
+
+-   **SQLite efímero en Render free tier**: ver [§10.2](#102-producción-en-rendercom).
+-   **Errores 503 de Google Books desde Render** por geolocalización de
+    IP: la app los maneja con reintentos exponenciales + jitter, y
+    termina con `502 ExternalAPIError` si el fallo persiste.
+-   **Sin paginación** en `GET /api/books`: devuelve todos los libros.
+    Para < 1000 libros no es problema; para más, agregar `?skip=N&limit=M`.
+-   **`max_results` limitado a 10** por Google Books en la implementación
+    actual. Es un límite hard en Pydantic + verificación interna.
+-   **`authors` y `categories` como String JSON**: no queryable como
+    JSON nativo (trade-off documentado en `DECISIONS`).
+-   **Sin tests E2E**: solo unitarios e integración. Faltan tests con
+    Playwright/Selenium sobre la UI.
 
 ---
 
@@ -634,37 +704,45 @@ escrita en Mermaid (se renderiza nativa en GitHub):
 
 Listados en orden de impacto:
 
-1. 🔴 **Persistencia real en producción** (Postgres externo o Persistent Disk de Render).
-2. 🔴 **Autenticación** (API key estática para `/api/*` o JWT).
-3. 🟡 **Paginación** en `GET /api/books`.
-4. 🟡 **Rate limiting** con `slowapi` para proteger la cuota de Google Books.
-5. 🟡 **Tests E2E** con Playwright sobre la UI web.
-6. 🟢 **Cache real** (Redis o módulo singleton) si el tráfico lo justifica.
-7. 🟢 **Tabla de auditoría** `sync_logs` con métricas por request.
-8. 🟢 **CI más completo**: linting con `ruff`, type-check con `mypy`, coverage report.
-9. 🟢 **Webhook de Google Books** para sync incremental en lugar de polling.
-10. 🟢 **Soporte multi-idioma** (i18n con `gettext`).
+1.  🔴 **Persistencia real en producción** (Postgres externo o
+    Persistent Disk de Render).
+2.  🔴 **Capa de seguridad transversal** (API key estática para `/api/*`,
+    CORS explícito, `slowapi` para rate limit, headers HTTP, CSRF en
+    forms web). Diseño iniciado, implementación pendiente.
+3.  🟡 **Paginación** en `GET /api/books`.
+4.  🟡 **Tests E2E** con Playwright sobre la UI web.
+5.  🟢 **Cache real** (Redis o módulo singleton) si el tráfico lo
+    justifica.
+6.  🟢 **Tabla de auditoría** `sync_logs` con métricas por request.
+7.  🟢 **CI más completo**: linting con `ruff`, type-check con `mypy`,
+    coverage report.
+8.  🟢 **Webhook de Google Books** para sync incremental en lugar de
+    polling.
+9.  🟢 **Soporte multi-idioma** (i18n con `gettext`).
 
 ---
 
 ## 15. Contribuir
 
-1. Fork el repo.
-2. Crea una rama: `git checkout -b feature/mi-cambio`.
-3. Haz commits descriptivos.
-4. Asegúrate de que los tests pasan: `pytest -v`.
-5. Push y abre un Pull Request describiendo el cambio.
+1.  Fork el repo.
+2.  Crea una rama: `git checkout -b feature/mi-cambio`.
+3.  Haz commits descriptivos.
+4.  Asegúrate de que los tests pasan: `pytest -v`.
+5.  Push y abre un Pull Request describiendo el cambio.
 
 **Convenciones de código:**
 
-- Python: `ruff` para linting, type hints en todo el código nuevo.
-- Commits: conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
-- Idioma del código: inglés. Idioma de docs y UI: español.
-- Estilo: seguir las convenciones de cada framework (FastAPI, SQLAlchemy, Jinja2).
+-   Python: `ruff` para linting, type hints en todo el código nuevo.
+-   Commits: conventional commits (`feat:`, `fix:`, `docs:`,
+    `refactor:`, `test:`).
+-   Idioma del código: inglés. Idioma de docs y UI: español.
+-   Estilo: seguir las convenciones de cada framework (FastAPI,
+    SQLAlchemy, Jinja2).
 
 ---
 
 ## 16. Licencia
 
-MIT License — ver [`LICENSE`](LICENSE) para el texto completo. Puedes usar, modificar
-y distribuir este software libremente con solo mantener el aviso de copyright original.
+MIT License — ver [`LICENSE`](LICENSE) para el texto completo. Puedes
+usar, modificar y distribuir este software libremente con solo mantener
+el aviso de copyright original.
