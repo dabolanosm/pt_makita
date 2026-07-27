@@ -222,7 +222,20 @@ tenía un bug) en [`docs/DECISIONS.md`](docs/DECISIONS.md).
     "Books API" → crear credencial "API key". La key debe estar
     **restringida a "Books API"** o devolverá 403.
 
-### 4.2. Setup local
+### 4.2. Arranque rápido en un solo comando (Windows PowerShell)
+
+Si ya tienes tu **Google Books API Key**, ejecuta esta línea en tu terminal para clonar el entorno, inyectar tu clave y levantar los contenedores automáticamente en segundo plano (reemplaza `TU_API_KEY_AQUI` por tu clave real):
+
+```powershell
+cp .env.example .env; (Get-Content .env) -replace 'GOOGLE_BOOKS_API_KEY=.*', 'GOOGLE_BOOKS_API_KEY=TU_API_KEY_AQUI' | Set-Content .env; docker compose up --build -d
+```
+
+Una vez finalizado, abre [http://localhost:8000](http://localhost:8000) en tu navegador.
+
+> 💡 Si prefieres ver cada paso por separado (recomendado para entender
+> qué se está configurando), sigue la sección [4.3](#43-setup-local-paso-a-paso).
+
+### 4.3. Setup local paso a paso
 
 ```bash
 # 1. Clonar
@@ -242,7 +255,7 @@ curl http://localhost:8000/health
 # Esperado: {"status":"ok","version":"0.1.0"}
 ```
 
-### 4.3. Verificación visual
+### 4.4. Verificación visual
 
 Abre en el navegador:
 
@@ -254,7 +267,7 @@ Abre en el navegador:
 | `http://localhost:8000/health`   | Health check (JSON)                                  |
 | `http://localhost:8000/health/db` | Health check de la DB                               |
 
-### 4.4. Sincronización inicial
+### 4.5. Sincronización inicial
 
 La base de datos arranca **vacía** (solo con el schema). Para llenarla:
 
@@ -797,6 +810,164 @@ proyecto sin abrir cada archivo.
 Los commits de typo o formato de una sola línea se evitan a propósito:
 si un cambio de docs merece un commit, se acumula con otros cambios
 relacionados en el mismo commit para mantener el historial legible.
+
+#### 15.1.1. Detalle de cada commit (clasificado por tipo)
+
+A continuación se lista **cada commit del repositorio en orden cronológico
+inverso** (más reciente primero), clasificado según la convención del
+proyecto. Los commits cuyo mensaje original no seguía la convención
+(typo fixes, formato) se reclasifican al tipo que les corresponde por
+contenido, no por el texto del mensaje. Esto deja un mapa claro de qué
+entregó cada commit y bajo qué categoría cae.
+
+##### ✨ `feat:` — nueva funcionalidad visible
+
+- **`a3ebdad`** — `fix(ui): modal backdrop shows correctly, cover image becomes a detail link`
+  Corrige un bug de UI donde el modal de *Limpiar biblioteca* y el de
+  *Eliminar* en la página de detalle no se mostraban. La causa raíz era
+  que el JS/CSS no contemplaba el atributo `hidden` ni la clase
+  `modal-backdrop`. Además, la portada del libro ahora es un enlace
+  navegable (la imagen va envuelta en un `<a>` hacia el detalle). *A
+  pesar del prefijo `fix`, se lista aquí porque entrega un cambio de
+  comportamiento visible en la UI.*
+
+- **`3ea5760`** — `feat: fix problemas visuales y mejora de centrado de imágenes`
+  Pasa de un README minimalista (131 líneas en el commit inicial) a
+  uno extenso (627 líneas añadidas en este commit). Corrige problemas
+  visuales del dashboard y mejora el centrado de imágenes; refactoriza
+  CSS de la base y de `index.html` (elimina 2 líneas de marcado que
+  sobraban). También simplifica `BookService` (13 líneas tocadas) para
+  alinear el código con la nueva narrativa del README.
+
+- **`c00ed46`** — `feat: mejoras visuales y fix de errores`
+  Rediseño amplio del frontend: simplificación de plantillas Jinja2
+  (`index.html` baja de complejidad), reescritura de `book_detail.html`
+  con menos repetición, nuevos estilos en `styles.css` (113 líneas
+  añadidas), lógica nueva en `app.js` (102 líneas), `.github/workflows/
+  test.yml` creado, y se añade la licencia MIT. Refactor menor de
+  `BookService` (49 líneas menos) y de `app/config.py`.
+
+- **`3b5d73b`** — `feat(deploy): añadir configuración de Render Blueprint y guía de despliegue (Nivel 7)`
+  Implementa el Nivel 7 de la prueba: `render.yaml` (23 líneas) con la
+  configuración del Blueprint de Render, 48 líneas nuevas en el README
+  sobre despliegue en producción, y `docs/DEPLOY.md` (114 líneas) con
+  guía paso a paso y troubleshooting.
+
+- **`4d5857c`** — `feat: book-library-sync v1 - niveles 1-6 y 8 completos`
+  Commit inicial con la base completa: estructura de 4 capas
+  (`interfaces/`, `application/`, `infrastructure/`, `domain/`),
+  integración con Google Books con `httpx` + retry + jitter,
+  deduplicación por `google_id`, CRUD REST completo, UI Jinja2 con
+  dashboard, `Dockerfile`, `docker-compose.yml`, tests básicos y
+  README inicial (131 líneas). Cubre los Niveles 1, 3, 4, 5, 6 y 8 de
+  la prueba técnica.
+
+##### 🐛 `fix:` — corrección de bug (no de typo)
+
+- **`a3ebdad`** — `fix(ui): modal backdrop shows correctly, cover image becomes a detail link`
+  Bug de UI ya descrito arriba: modales que no aparecían por
+  incompatibilidad entre el atributo `hidden` y la clase
+  `modal-backdrop`, y la portada del libro que no era clicable. *Se
+  reenumera aquí bajo `fix:` porque su contenido real es la corrección
+  de un bug visual (no un typo).*
+
+  > No hay otros commits con prefijo `fix:` puro en el historial. El
+  > único `fix` real es este, y aparece listado también en `feat:` para
+  > mantener la cronología del mensaje original.
+
+##### 📚 `docs:` — cambios solo en documentación (incluye README y `docs/`)
+
+- **`888136d`** — `docs(readme): add localhost:8080 attempt, 503-by-gratis note, commits history; drop section sign`
+  Añade al README la nota sobre el intento fallido de desplegar
+  Pressbooks en `localhost:8080`, la aclaración honesta de que el 503
+  viene por la gratuidad de la API, e incorpora este historial de
+  commits. También elimina el signo de sección (§) del título.
+
+- **`751ed85`** — `docs(readme): rewrite section 1.2 as Pressbooks evaluation process; trim cold start; refresh limitations`
+  Reestructuración profunda del README (434 líneas añadidas, 356
+  eliminadas): la sección 1.2 pasa de una justificación plana de
+  Pressbooks a un proceso de evaluación estructurado con sub-secciones
+  (1.2.1 a 1.2.4); la sección 5 (cold start) se condensa; y la
+  sección 13 se reorganiza en *“lo intentado y no completado”* vs
+  *“limitaciones técnicas”*.
+
+- **`55189b6`** — `docs: convertir diagrama ASCII del Paso 6 a diagrama de secuencia Mermaid`
+  Reemplaza el diagrama ASCII del Paso 6 de la sección 5 (cold start)
+  por un diagrama de secuencia Mermaid que renderiza nativo en GitHub.
+
+- **`ca8cfe3`** — `docs: resumir justificación de Pressbooks y enfatizar el desajuste de stack (Python vs PHP)`
+  Resume la justificación de sustituir Pressbooks en el README (33
+  líneas añadidas, 49 eliminadas) y enfatiza el desajuste entre el
+  stack Python (FastAPI/SQLAlchemy/SQLite) y el stack PHP
+  (WordPress/MariaDB) como razón principal de la sustitución.
+
+- **`2a08239`** — `docs: aclarar cobertura de niveles 2 y 6 con justificación honesta de la sustitución de Pressbooks`
+  Añade 61 líneas al README aclarando que el Nivel 2 (Pressbooks como
+  componente principal) y el Nivel 6 (integración entre componentes)
+  se cubren con la arquitectura propia, no con Pressbooks. Incluye una
+  nota explícita de honestidad sobre la sustitución.
+
+- **`47481b7`** — `adicción error 503 al readme` *(reclasificado como `docs:`)*
+  Añade 2 líneas al README documentando el error 503 de Google Books y
+  su manejo con reintentos.
+
+- **`8d6c0bd`** — `docs: add Mermaid architecture, data, sync flow, sequence and deployment diagrams`
+  Crea los 5 diagramas Mermaid del proyecto (arquitectura general,
+  modelo de datos ER, flujo de sincronización, secuencia UML del sync,
+  y despliegue) más el índice en `docs/diagrams/README.md`. 594 líneas
+  añadidas, principalmente documentación visual.
+
+- **`67eb213`** — `correción tabla punto 4` *(reclasificado como `docs:`)*
+  Primera pasada de corrección tipográfica/visual de la tabla de
+  actores en `docs/diagrams/04-secuencia-sync.md`.
+
+- **`ce614c1`** — `correción tabla punto 4` *(reclasificado como `docs:`)*
+  Segunda pasada sobre la misma tabla de `04-secuencia-sync.md`
+  (ajuste de columnas, 17 líneas modificadas).
+
+- **`b212782`** — `correción tabla punto 4` *(reclasificado como `docs:`)*
+  Tercera pasada sobre la misma tabla de `04-secuencia-sync.md`
+  (refinamiento de la alineación, 31 líneas modificadas).
+
+- **`6fa1574`** — `correción tabla readme` *(reclasificado como `docs:`)*
+  Reorganiza la tabla de cobertura de niveles en el README (15 líneas
+  añadidas, 25 eliminadas).
+
+- **`56f65c0`** — `Add architecture diagrams to README` *(reclasificado como `docs:`)*
+  Añade 14 líneas al README con los primeros enlaces a los diagramas
+  de arquitectura. Es la versión previa a la conversión completa a
+  Mermaid nativo del commit `8d6c0bd`.
+
+- **`8e7366e`** — `Fix formatting and clarify cloud deployment section` *(reclasificado como `docs:`)*
+  Pequeño ajuste de formato y aclaración de la sección de despliegue
+  en la nube (1 línea añadida, 2 eliminadas en el README).
+
+##### ♻️ `refactor:` — cambios internos sin cambio de comportamiento
+
+No hay commits explícitos con prefijo `refactor:` en el historial. Los
+cambios internos del código (p. ej. simplificación de `BookService`,
+limpieza de plantillas Jinja2, ajustes de CSS sin cambio de
+comportamiento) vinieron acoplados a commits `feat:` como parte de la
+entrega de funcionalidad visible, no como commits independientes.
+
+##### 🧪 `test:` — solo tests
+
+No hay commits dedicados con prefijo `test:`. La base de tests del
+proyecto (3 archivos: `tests/test_api.py`, `tests/test_book_service.py`,
+`tests/test_books_client.py`) se creó junto con el commit inicial
+`4d5857c`, y el workflow de CI en `.github/workflows/test.yml` se
+añadió dentro del commit `c00ed46` como parte de la entrega de
+mejoras visuales y fixes.
+
+##### 📊 Resumen por tipo
+
+| Tipo        | # commits | Commits más relevantes                                                                                              |
+| ----------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
+| `feat:`     | 5         | `4d5857c` (base), `3b5d73b` (deploy), `c00ed46` (UI + CI), `3ea5760` (centrado + README), `a3ebdad` (modal UI)    |
+| `fix:`      | 1         | `a3ebdad` (modal backdrop + cover link)                                                                            |
+| `docs:`     | 12        | Reescrituras del README, diagramas Mermaid, justificación de Pressbooks y correcciones tipográficas                 |
+| `refactor:` | 0         | Refactors menores embebidos en commits `feat:`                                                                     |
+| `test:`     | 0         | Tests iniciales y CI incluidos en `4d5857c` y `c00ed46`                                                            |
 
 ### 15.2. Cómo contribuir
 
