@@ -835,6 +835,11 @@ proyecto sin abrir cada archivo.
     (atributo `hidden` y clase `modal-backdrop` no contemplados en el
     JS/CSS), y portada de libro ahora navegable envolviendo la imagen
     en un `<a>`.
+9.  **Segundo fix de UI + tests de rutas web** (commit `2170af8`,
+    integrado vía merge `e5669ca`) — reescritura parcial de `app.js`
+    y `styles.css`, ajustes en `base.html` / `book_detail.html` /
+    `index.html`, y nuevo archivo `tests/test_web_routes.py` (59
+    líneas) que cubre los flujos web.
 
 **Convención aplicada en este repo:**
 
@@ -853,14 +858,15 @@ relacionados en el mismo commit para mantener el historial legible.
 > concentró la construcción inicial del proyecto completo en **un
 > solo commit general con el proyecto ya funcional**, no se fragmentó
 > nivel por nivel. Esto explica por qué el historial tiene
-> relativamente pocos commits `fix:` (solo **1**) y `refactor:`
+> relativamente pocos commits `fix:` (**2** hasta ahora) y `refactor:`
 > (**0**): la mayoría de las correcciones de bugs y mejoras internas
 > se consolidaron dentro de ese commit inicial, antes de que existiera
 > un historial granular al que pudieran aportar fixes incrementales.
 > Los commits posteriores se centraron principalmente en documentación
-> y ajustes visuales, con un único fix real de UI (`a3ebdad`). Esto
-> no es un descuido: es coherente con haber entregado la base
-> completa de una vez y luego iterar sobre documentación.
+> y ajustes visuales, con fixes puntuales de UI (`a3ebdad` y
+> `2170af8`). Esto no es un descuido: es coherente con haber
+> entregado la base completa de una vez y luego iterar sobre
+> documentación y pulido.
 
 #### 15.1.1. Detalle de cada commit (clasificado por tipo)
 
@@ -922,9 +928,16 @@ entregó cada commit y bajo qué categoría cae.
   reenumera aquí bajo `fix:` porque su contenido real es la corrección
   de un bug visual (no un typo).*
 
-  > No hay otros commits con prefijo `fix:` puro en el historial. El
-  > único `fix` real es este, y aparece listado también en `feat:` para
-  > mantener la cronología del mensaje original.
+- **`2170af8`** — `fix: UI problems and bugs`
+  Segundo fix de UI: reescribe partes de `app.js` (48 líneas
+  añadidas), amplía `styles.css` (171 líneas), ajusta `base.html`,
+  `book_detail.html` e `index.html` (33 líneas combinadas), y añade
+  el archivo de tests `tests/test_web_routes.py` (59 líneas) para
+  cubrir las rutas web. Es un fix-de-corrección de problemas
+  visuales y de comportamiento de la UI, no de typos.
+
+  > `a3ebdad` aparece listado también en `feat:` para mantener la
+  > cronología del mensaje original.
 
 ##### 📚 `docs:` — cambios solo en documentación (incluye README y `docs/`)
 
@@ -936,6 +949,12 @@ entregó cada commit y bajo qué categoría cae.
   API (6.1 a 6.4 + 6.3.1), tests, despliegue, limitaciones, y el
   nuevo desglose de commits en 15.1.1. Mejora la navegación sin
   cambiar el contenido.
+
+- **`e5669ca`** — `fix: UI problems and bugs` *(merge commit, reclasificado como `docs:`)*
+  Merge no fast-forward que integra el fix de UI de `2170af8` con la
+  expansión del TOC de `92e9648`. Sin cambios de contenido propios
+  en el README; figura aquí solo para dejar registro del merge en
+  el historial de la rama.
 
 - **`50c683d`** — `docs(readme): add Windows PowerShell quick-start section and per-commit breakdown by type`
   Añade la sección 4.2 con el one-liner de PowerShell para clonar,
@@ -1033,11 +1052,11 @@ mejoras visuales y fixes.
 | Tipo        | # commits | Commits más relevantes                                                                                              |
 | ----------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
 | `feat:`     | 5         | `4d5857c` (base), `3b5d73b` (deploy), `c00ed46` (UI + CI), `3ea5760` (centrado + README), `a3ebdad` (modal UI)    |
-| `fix:`      | 1         | `a3ebdad` (modal backdrop + cover link)                                                                            |
-| `docs:`     | 14        | Reescrituras del README, diagramas Mermaid, justificación de Pressbooks, correcciones tipográficas y los 2 commits más recientes (TOC detallado y arranque rápido en PowerShell) |
+| `fix:`      | 2         | `a3ebdad` (modal backdrop + cover link), `2170af8` (UI problems + tests de rutas web)                              |
+| `docs:`     | 15        | Reescrituras del README, diagramas Mermaid, justificación de Pressbooks, correcciones tipográficas, los 2 commits de docs (TOC detallado y arranque rápido en PowerShell) y el merge `e5669ca` |
 | `refactor:` | 0         | Refactors menores embebidos en commits `feat:`                                                                     |
-| `test:`     | 0         | Tests iniciales y CI incluidos en `4d5857c` y `c00ed46`                                                            |
-| **Total**   | **20**    | —                                                                                                                  |
+| `test:`     | 0         | Tests iniciales en `4d5857c`; tests de rutas web (`tests/test_web_routes.py`) añadidos dentro de `2170af8`           |
+| **Total**   | **22**    | —                                                                                                                  |
 
 ### 15.2. Cómo contribuir
 
