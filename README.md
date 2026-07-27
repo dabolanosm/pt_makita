@@ -841,6 +841,20 @@ Los commits de typo o formato de una sola línea se evitan a propósito:
 si un cambio de docs merece un commit, se acumula con otros cambios
 relacionados en el mismo commit para mantener el historial legible.
 
+> 📌 **Nota sobre la distribución de tipos de commit.** El commit
+> `4d5857c` ("book-library-sync v1 - niveles 1-6 y 8 completos")
+> concentró la construcción inicial del proyecto completo en **un
+> solo commit general con el proyecto ya funcional**, no se fragmentó
+> nivel por nivel. Esto explica por qué el historial tiene
+> relativamente pocos commits `fix:` (solo **1**) y `refactor:`
+> (**0**): la mayoría de las correcciones de bugs y mejoras internas
+> se consolidaron dentro de ese commit inicial, antes de que existiera
+> un historial granular al que pudieran aportar fixes incrementales.
+> Los commits posteriores se centraron principalmente en documentación
+> y ajustes visuales, con un único fix real de UI (`a3ebdad`). Esto
+> no es un descuido: es coherente con haber entregado la base
+> completa de una vez y luego iterar sobre documentación.
+
 #### 15.1.1. Detalle de cada commit (clasificado por tipo)
 
 A continuación se lista **cada commit del repositorio en orden cronológico
@@ -906,6 +920,24 @@ entregó cada commit y bajo qué categoría cae.
   > mantener la cronología del mensaje original.
 
 ##### 📚 `docs:` — cambios solo en documentación (incluye README y `docs/`)
+
+- **`92e9648`** — `docs(readme): expand table of contents to include all sub-sections`
+  Amplía la Tabla de contenidos del README: pasa de 16 entradas de
+  primer nivel a 40+ entradas con sub-items, incluyendo los 4 pasos
+  del proceso de evaluación de Pressbooks (1.2.1 a 1.2.4), las
+  sub-secciones de arranque rápido (4.1 a 4.5), la referencia de la
+  API (6.1 a 6.4 + 6.3.1), tests, despliegue, limitaciones, y el
+  nuevo desglose de commits en 15.1.1. Mejora la navegación sin
+  cambiar el contenido.
+
+- **`50c683d`** — `docs(readme): add Windows PowerShell quick-start section and per-commit breakdown by type`
+  Añade la sección 4.2 con el one-liner de PowerShell para clonar,
+  inyectar `GOOGLE_BOOKS_API_KEY` y levantar los contenedores en un
+  solo paso (`cp .env.example .env; (Get-Content .env) -replace ... |
+  Set-Content .env; docker compose up --build -d`). Renumera 4.2 a
+  4.5. Crea la sub-sección 15.1.1 con el detalle de cada commit
+  clasificado por tipo (feat / fix / docs / refactor / test) y
+  resumen en tabla.
 
 - **`888136d`** — `docs(readme): add localhost:8080 attempt, 503-by-gratis note, commits history; drop section sign`
   Añade al README la nota sobre el intento fallido de desplegar
@@ -995,9 +1027,10 @@ mejoras visuales y fixes.
 | ----------- | --------- | ------------------------------------------------------------------------------------------------------------------- |
 | `feat:`     | 5         | `4d5857c` (base), `3b5d73b` (deploy), `c00ed46` (UI + CI), `3ea5760` (centrado + README), `a3ebdad` (modal UI)    |
 | `fix:`      | 1         | `a3ebdad` (modal backdrop + cover link)                                                                            |
-| `docs:`     | 12        | Reescrituras del README, diagramas Mermaid, justificación de Pressbooks y correcciones tipográficas                 |
+| `docs:`     | 14        | Reescrituras del README, diagramas Mermaid, justificación de Pressbooks, correcciones tipográficas y los 2 commits más recientes (TOC detallado y arranque rápido en PowerShell) |
 | `refactor:` | 0         | Refactors menores embebidos en commits `feat:`                                                                     |
 | `test:`     | 0         | Tests iniciales y CI incluidos en `4d5857c` y `c00ed46`                                                            |
+| **Total**   | **20**    | —                                                                                                                  |
 
 ### 15.2. Cómo contribuir
 
