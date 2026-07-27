@@ -342,11 +342,10 @@ componentes intermedios se ve en los diagramas de
     devuelve `[]` (vacío la primera vez) → `index.html` se renderiza con
     el empty state.
 
-> ⚠️ **SQLite arranca vacío.** Solo con el schema. La única forma de
-> llenarlo es llamar a `POST /api/sync` (sincronización desde Google Books)
-> o a `POST /api/books` (creación manual). En Render free tier, el archivo
-> es **efímero** y se borra en cada redeploy. Ver
-> [`docs/DEPLOY.md` sección 4](docs/DEPLOY.md) para más detalle.
+> ⚠️ **En Render free tier el archivo es efímero** y se borra en cada
+> redeploy (ver [10.2](#102-producción-en-rendercom) y [13.2](#132-limitaciones-técnicas-que-se-mantienen)).
+> La nota sobre el arranque con DB vacía y cómo llenarla está en
+> [4.5](#45-sincronización-inicial).
 
 ### 5.2. Diagrama de secuencia del primer `GET /`
 
@@ -376,8 +375,8 @@ sequenceDiagram
 
 **Observación importante:** `BookService` se crea **por cada request** (vía
 `Depends(get_book_service)`), por eso cualquier caché basado en atributos
-de instancia sería inútil. Esa es la razón por la que se eliminó el caché.
-Ver [`docs/DECISIONS.md`](docs/DECISIONS.md) para el detalle.
+de instancia sería inútil. El detalle de por qué se eliminó el caché
+está en [11](#11-decisiones-técnicas-documentadas).
 
 Para el detalle temporal completo del sync (que es donde se ve el retry,
 la dedup y el manejo de errores), ver
@@ -433,12 +432,11 @@ documentación interactiva (Swagger UI con try-it-out) está disponible en
 | `POST` | `/api/sync`                       | Sincroniza desde Google Books con una query arbitraria                   | `200` · `422` si `max_results > 10` · `502` si Google falla |
 | `POST` | `/api/sync/seed?confirm=true`     | Sincroniza las 6 búsquedas semilla (python, sci-fi, colombia, etc.)     | `200` · `422` sin `confirm=true` · `502` si alguna falla   |
 
-> **Nota sobre errores 503.** Google Books puede devolver errores `503`
-> o `5xx` por saturación, mantenimiento temporal, o por no poder
-> geolocalizar la IP de origen (común en entornos cloud). La app
-> reintenta con backoff exponencial y jitter, y si el fallo persiste
-> termina respondiendo con `502` como `ExternalAPIError`. Ver
-> [`docs/DEPLOY.md` sección 7](docs/DEPLOY.md) para troubleshooting.
+> **Sobre los errores 503.** La app reintenta con backoff exponencial
+> y jitter; si el fallo persiste termina respondiendo `502` como
+> `ExternalAPIError`. El detalle de por qué aparecen (capa gratuita
+> de Google Books + geolocalización de IP en cloud) está en
+> [6.3.1](#631-por-qué-el-503-también-aparece-usando-solo-la-restapi).
 
 #### 6.3.1. Por qué el 503 también aparece usando solo la RestAPI
 
@@ -631,13 +629,15 @@ GOOGLE_BOOKS_API_KEY=test-key pytest -q
 
 ### 10.1. Local con Docker Compose
 
-```bash
-docker compose up --build -d
-```
+El flujo paso a paso (clonar → `.env` → `docker compose up --build -d`
+→ health check) ya está cubierto en [4.3](#43-setup-local-paso-a-paso)
+y [4.4](#44-verificación-visual). Esta sección solo agrega lo que
+esos pasos implican bajo el capó:
 
 -   El servicio `api` se construye desde el `Dockerfile`.
 -   El código se monta como bind volume (cambios en caliente).
--   `data/app.db` se monta en `./data` (persiste en el host).
+-   `data/app.db` se monta en `./data` (persiste en el host, **a
+    diferencia de Render**, ver 10.2).
 
 ### 10.2. Producción en Render.com
 
@@ -689,10 +689,10 @@ más relevantes para esta entrega:
     local.
 -   **Por qué Jinja2 y no React/Vue** → sin bundler, sin npm, foco en
     backend.
--   **Por qué se sustituyó Pressbooks** → combinación de tiempo limitado,
-    recursos necesarios para Docker, fricción de stack Python vs PHP, y
-    riesgo de `wp_remote_get` bloqueante en integraciones críticas.
-    Proceso completo en [1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación).
+-   **Por qué se sustituyó Pressbooks** → resumen y motivación en
+    [1.2.3](#123-decisión-final); el proceso completo (qué se evaluó,
+    problemas, decisión, cómo se integraría después) está en
+    [1.2](#12-pressbooks-como-componente-principal--proceso-de-evaluación).
 -   **Por qué se eliminó el caché de `BookService`** → con el wiring
     actual de FastAPI (`Depends(get_book_service)` por request), el caché
     basado en `self._query_cache` se reiniciaba en cada request, haciendo
@@ -819,15 +819,22 @@ proyecto sin abrir cada archivo.
     `wp_remote_get`, 503 intermitentes).
 5.  **Ajustes de presentación** — fix de centrado de imágenes, mejoras
     visuales, y correcciones de formato en la tabla de cobertura.
-6.  **Reescritura del README** (este commit) — sección 1.2 convertida
-    en proceso de evaluación estructurado, sección 5 (cold start)
-    condensada, sección 13 reorganizada en "lo intentado y no
+6.  **Reescritura del README** (commit `888136d`) — sección 1.2
+    convertida en proceso de evaluación estructurado, sección 5 (cold
+    start) condensada, sección 13 reorganizada en "lo intentado y no
     completado" vs "limitaciones técnicas", y adición del contexto del
     503 por gratuidad de la API.
-7.  **Fix de bugs de UI** — modal de "Limpiar biblioteca" y de
-    "Eliminar" en detalle que no se mostraban (atributo `hidden` y
-    clase `modal-backdrop` no contemplados en el JS/CSS), y portada de
-    libro ahora navegable envolviendo la imagen en un `<a>`.
+7.  **Detalle de commits por tipo** (commits `50c683d` y `92e9648`) —
+    se añadió la sub-sección 15.1.1 con el desglose de los 20 commits
+    clasificados en `feat` / `fix` / `docs` / `refactor` / `test`, la
+    nota explicando por qué hay tan pocos `fix` y `refactor` (el commit
+    inicial fue "big bang" con el proyecto ya funcional), y el TOC se
+    expandió de 16 a 40+ entradas con sub-items.
+8.  **Fix de bugs de UI** (commit `a3ebdad`) — modal de "Limpiar
+    biblioteca" y de "Eliminar" en detalle que no se mostraban
+    (atributo `hidden` y clase `modal-backdrop` no contemplados en el
+    JS/CSS), y portada de libro ahora navegable envolviendo la imagen
+    en un `<a>`.
 
 **Convención aplicada en este repo:**
 
